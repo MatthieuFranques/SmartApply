@@ -1,0 +1,7 @@
+.env
+mon_cv.pdf
+./results/*
+**/__pycache__/
+
+
+cv.pdf
