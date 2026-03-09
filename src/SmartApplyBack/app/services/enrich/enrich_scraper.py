@@ -11,7 +11,7 @@ from urllib.parse import urlparse, urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from enrich_config import (
+from app.services.enrich.enrich_config import (
     HEADERS, TIMEOUT,
     TECH_KEYWORDS, SIZE_HINTS, JOB_TITLE_KEYWORDS,
     CANDIDATE_KEYWORDS, CONTACT_PATHS,

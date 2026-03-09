@@ -5,8 +5,8 @@
 
 from dataclasses import asdict
 
-from enrich_config import CompanyContext, JobOffer, ContactForm
-from enrich_scraper import (
+from app.services.enrich.enrich_config  import CompanyContext, JobOffer, ContactForm
+from app.services.enrich.enrich_scraper import (
     build_url,
     fetch_page,
     scrape_page_safe,

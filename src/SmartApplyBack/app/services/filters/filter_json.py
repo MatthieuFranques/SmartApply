@@ -1,12 +1,12 @@
 """
-filter_csv.py
--------------
-Lecture et écriture CSV partagées entre prefilter.py et deep_filter.py.
+filter_json.py
+--------------
+Lecture et écriture JSON partagées entre prefilter.py et deep_filter.py.
 Remplace les fonctions load_csv / save_csv dupliquées dans les deux fichiers.
 """
 
 import os
-import csv
+import json
 
 PREFILTER_FIELDS = [
     "prescore", "nom", "domaine", "ville", "email",
@@ -24,30 +24,38 @@ ELIMINATED_FIELDS = [
 ]
 
 
-def load_csv(filename: str) -> list:
+def load_json(filename: str) -> list:
     """
-    Charge un CSV et retourne une liste de dicts.
+    Charge un JSON et retourne une liste de dicts.
     Retourne une liste vide si le fichier est introuvable.
     """
+    filename = os.path.splitext(filename)[0] + ".json"
     if not os.path.exists(filename):
         print(f"⚠️  Fichier introuvable : {filename}")
         return []
     with open(filename, "r", encoding="utf-8") as f:
-        rows = [dict(row) for row in csv.DictReader(f)]
+        rows = json.load(f)
     print(f"📂 {len(rows)} entreprises chargées depuis '{filename}'")
     return rows
 
 
-def save_csv(companies: list, filename: str, fieldnames: list) -> None:
+def save_json(companies: list, filename: str, fieldnames: list = None) -> None:
     """
-    Sauvegarde une liste de dicts dans un CSV.
+    Sauvegarde une liste de dicts dans un JSON.
     Crée les dossiers parents si nécessaire.
+    fieldnames : si fourni, filtre les clés à garder (optionnel).
     """
     if not companies:
         return
+
+    filename = os.path.splitext(filename)[0] + ".json"
     os.makedirs(os.path.dirname(filename), exist_ok=True) if os.path.dirname(filename) else None
-    with open(filename, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(companies)
+
+    # Filtre les champs si fieldnames est fourni
+    if fieldnames:
+        companies = [{k: c.get(k, "") for k in fieldnames} for c in companies]
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(companies, f, ensure_ascii=False, indent=2)
+
     print(f"💾 {len(companies)} entreprises → '{filename}'")

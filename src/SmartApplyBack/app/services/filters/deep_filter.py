@@ -2,19 +2,6 @@
 deep_filter.py
 --------------
 Filtrage approfondi ASYNC — 3 couches gratuites.
-
-Pipeline (après prefilter.py) :
-    1. Fraîcheur du site  → site actif récemment ?
-    2. Vérification MX    → domaine mail valide ?
-    3. Page carrières     → entreprise qui recrute en IT ?
-
-Dépendances :
-    pip install aiohttp aiodns beautifulsoup4 python-dotenv
-
-Usage :
-    python deep_filter.py
-    python deep_filter.py --input results/prefiltered.csv --output results/deep_filtered.csv
-    python deep_filter.py --concurrency 15 --min-score 5
 """
 
 import os
@@ -32,29 +19,18 @@ from dotenv        import load_dotenv
 from email.utils   import parsedate_to_datetime
 from filter_config import (TIMEOUT_HTTP, PAUSE, CONCURRENCY, MIN_DEEP_SCORE,
                             HTTP_HEADERS, CAREER_PATHS, MX_PROVIDERS, IT_KEYWORDS)
-from filter_csv    import load_csv, save_csv, DEEP_FILTER_FIELDS
+from app.services.filters.filter_json import load_json, save_json, DEEP_FILTER_FIELDS
 from filter_scoring import compute_deep_score
 
 load_dotenv()
 
-DEFAULT_INPUT  = "entreprises_prefiltered.csv"
-DEFAULT_OUTPUT = "entreprises_deep_filtered.csv"
+DEFAULT_INPUT  = "entreprises_prefiltered.json"
+DEFAULT_OUTPUT = "entreprises_deep_filtered.json"
 
 
 # ─── COUCHE 1 — FRAÎCHEUR DU SITE ───────────────────────────
 
 async def check_site_freshness(session: aiohttp.ClientSession, domain: str) -> dict:
-    """
-    Évalue si le site est actif et maintenu récemment.
-    Vérifie le header Last-Modified + présence de l'année courante dans le HTML.
-
-    Score de fraîcheur (0-3) :
-        Last-Modified < 6 mois  → +2
-        Last-Modified < 1 an    → +1
-        Année courante dans HTML → +2
-        Année N-1 dans HTML      → +1
-        Balise <time> récente    → +1
-    """
     for scheme in ["https://", "http://"]:
         try:
             async with session.get(
@@ -66,8 +42,8 @@ async def check_site_freshness(session: aiohttp.ClientSession, domain: str) -> d
                 if response.status != 200:
                     continue
 
-                text         = await response.text(errors="replace")
-                score        = 0
+                text          = await response.text(errors="replace")
+                score         = 0
                 last_modified = ""
                 current_year  = datetime.now().year
 
@@ -109,11 +85,6 @@ async def check_site_freshness(session: aiohttp.ClientSession, domain: str) -> d
 # ─── COUCHE 2 — VÉRIFICATION MX ─────────────────────────────
 
 async def check_mx_record(resolver: aiodns.DNSResolver, domain: str) -> dict:
-    """
-    Vérifie qu'un serveur mail existe pour le domaine.
-    Sans MX record → email quasi-certain d'être rejeté.
-    Identifie le fournisseur (Google, Microsoft, OVH…).
-    """
     try:
         mx_records = await resolver.query(domain, "MX")
         if not mx_records:
@@ -133,15 +104,6 @@ async def check_mx_record(resolver: aiodns.DNSResolver, domain: str) -> dict:
 # ─── COUCHE 3 — PAGE CARRIÈRES ───────────────────────────────
 
 async def check_career_page(session: aiohttp.ClientSession, domain: str) -> dict:
-    """
-    Teste tous les chemins carrières en parallèle.
-    Détecte les offres IT spécifiques sur la page trouvée.
-
-    career_score :
-        Page IT trouvée      → 3
-        Page sans offres IT  → 1
-        Aucune page          → 0
-    """
     empty = {"has_careers": False, "careers_url": "", "it_jobs_found": False, "career_score": 0}
 
     async def try_path(scheme: str, path: str) -> dict | None:
@@ -187,7 +149,6 @@ async def process_company(session: aiohttp.ClientSession,
                            semaphore: asyncio.Semaphore,
                            company: dict,
                            index: int, total: int) -> dict:
-    """Lance les 3 couches en parallèle pour une entreprise."""
     async with semaphore:
         domain = company.get("domaine", "")
         name   = company.get("nom", "?")

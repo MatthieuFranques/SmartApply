@@ -1,19 +1,13 @@
 """
 enrich_main.py
 --------------
-Point d'entrée — enrichit les entreprises du CSV via scraping.
+Point d'entrée — enrichit les entreprises du JSON via scraping.
 
 Usage:
-    python enrich_main.py --input results/be/prospects.csv --output results/be/enriched.json
-    python enrich_main.py --input results/be/prospects.csv --output results/be/enriched.json --limit 5
-    python enrich_main.py --input ../../results/be/prospects.csv --output ../../results/be/enriched.json --limit 5 
-
-Dépendances:
-    pip install requests beautifulsoup4 tqdm
+    python enrich_main.py --input results/be/prospects.json --output results/be/enriched.json
+    python enrich_main.py --input results/be/prospects.json --output results/be/enriched.json --limit 5
 """
 
-
-import csv
 import json
 import time
 import argparse
@@ -24,9 +18,9 @@ from tqdm import tqdm
 from enrich_pipeline import enrich_company, summarize_context
 
 
-def load_csv(filepath: str) -> list[dict]:
-    with open(filepath, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+def load_json(filepath: str) -> list[dict]:
+    with open(filepath, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def save_json(data: list, filepath: str):
@@ -38,13 +32,13 @@ def save_json(data: list, filepath: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Enrichit les entreprises du CSV via scraping.")
-    parser.add_argument("--input",  required=True,           help="Chemin vers le CSV d'entrée")
+    parser = argparse.ArgumentParser(description="Enrichit les entreprises du JSON via scraping.")
+    parser.add_argument("--input",  required=True,           help="Chemin vers le JSON d'entrée")
     parser.add_argument("--output", default="enriched.json", help="Fichier JSON de sortie")
     parser.add_argument("--limit",  type=int, default=None,  help="Nombre max d'entreprises")
     args = parser.parse_args()
 
-    rows = load_csv(args.input)
+    rows = load_json(args.input)
     if args.limit:
         rows = rows[:args.limit]
 
@@ -66,7 +60,6 @@ def main():
 
     save_json(results, args.output)
 
-    # Résumé
     with_offers  = sum(1 for r in results if r.get("job_offers"))
     with_contact = sum(1 for r in results if r.get("contact_form"))
     print(f"   {len(results) - errors} succès · {errors} erreurs")
