@@ -9,7 +9,7 @@ Les deux fonctions de détection de mots-clés sont aussi centralisées ici
 car elles servent dans les deux pipelines.
 """
 
-from filter_config import BLACKLIST, IT_KEYWORDS
+from app.services.filters.filter_config import BLACKLIST, IT_KEYWORDS
 
 
 # ─── DÉTECTION DE CONTENU ────────────────────────────────────

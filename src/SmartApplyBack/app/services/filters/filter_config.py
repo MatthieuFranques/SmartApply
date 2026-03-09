@@ -72,3 +72,13 @@ MX_PROVIDERS = {
     "microsoft": "Microsoft 365",
     "ovh"      : "OVH",
 }
+
+# filter_config.py
+
+def get_input_path(city: str, base_dir: str = "results") -> str:
+    """Retourne le chemin du fichier scraping pour une ville."""
+    return os.path.join(base_dir, f"scraping_results-{city.lower()}.json")
+
+def get_output_path(city: str, base_dir: str = "results") -> str:
+    """Retourne le chemin du fichier prefiltered pour une ville."""
+    return os.path.join(base_dir, f"filter_results-{city.lower()}.json")

@@ -5,45 +5,52 @@ Orchestre le pipeline complet de filtrage en une seule commande.
 """
 
 import os
-import sys
 import asyncio
 import argparse
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from filter_config  import MIN_PRESCORE, MIN_DEEP_SCORE, CONCURRENCY
-from app.services.filters.filter_json import load_json, save_json, PREFILTER_FIELDS, DEEP_FILTER_FIELDS, ELIMINATED_FIELDS
-from prefilter      import prefilter_companies
-from deep_filter    import deep_filter_async
+from app.services.filters.filter_config  import MIN_PRESCORE, MIN_DEEP_SCORE, CONCURRENCY
+from app.services.filters.filter_json    import load_json, save_json, PREFILTER_FIELDS, DEEP_FILTER_FIELDS, ELIMINATED_FIELDS
+from app.services.filters.prefilter      import prefilter_companies
+from app.services.filters.deep_filter    import deep_filter_async
 
 
-def build_output_dir(input_json: str, output_dir: str | None) -> str:
-    if output_dir:
-        return output_dir
-    base = os.path.splitext(os.path.basename(input_json))[0]
-    city = base.split("_", 1)[-1].lower()
-    return os.path.join("results", city)
+# ─── Chemins ─────────────────────────────────────────────────
+
+def get_input_path(city: str, base_dir: str = "results") -> str:
+    """Retourne le chemin du fichier scraping pour une ville."""
+    return os.path.join(base_dir, f"scraping_results-{city.lower()}.json")
 
 
-def build_paths(input_json: str, output_dir: str) -> dict:
-    base = os.path.splitext(os.path.basename(input_json))[0]
+def build_output_dir(city: str, base_dir: str = "results") -> str:
+    """Génère le dossier de sortie depuis le nom de la ville."""
+    return os.path.join(base_dir, city.lower())
+
+
+def build_paths(city: str, output_dir: str) -> dict:
+    """Génère tous les chemins de fichiers dans le dossier de sortie."""
     return {
-        "prefiltered"    : os.path.join(output_dir, f"{base}_prefiltered.json"),
-        "pre_eliminated" : os.path.join(output_dir, f"{base}_pre_eliminated.json"),
-        "deep_filtered"  : os.path.join(output_dir, f"{base}_deep_filtered.json"),
-        "deep_eliminated": os.path.join(output_dir, f"{base}_deep_eliminated.json"),
+        "prefiltered"    : os.path.join(output_dir, f"filter_results-{city.lower()}.json"),
+        "pre_eliminated" : os.path.join(output_dir, f"filter_eliminated-{city.lower()}.json"),
+        "deep_filtered"  : os.path.join(output_dir, f"deep_results-{city.lower()}.json"),
+        "deep_eliminated": os.path.join(output_dir, f"deep_eliminated-{city.lower()}.json"),
     }
 
 
 # ─── ÉTAPES ──────────────────────────────────────────────────
 
-def run_prefilter(input_json: str, paths: dict, min_prescore: int) -> list:
+def run_prefilter(city: str, paths: dict, min_prescore: int, base_dir: str = "results") -> list:
     print("\n" + "═" * 55)
     print("  🔍 ÉTAPE 1 — PRÉFILTRAGE (DNS + scraping + blacklist)")
     print("═" * 55)
 
-    companies = load_json(input_json)
+    input_file = get_input_path(city, base_dir)
+
+    if not os.path.exists(input_file):
+        print(f"⚠️  Fichier introuvable : {input_file}")
+        return []
+
+    companies = load_json(input_file)
     if not companies:
         return []
 
@@ -77,56 +84,82 @@ def run_deep_filter(companies: list, paths: dict,
     return kept
 
 
-def print_summary(input_json: str, pre_kept: list, deep_kept: list,
-                  paths: dict, output_dir: str, elapsed: int) -> None:
+def print_summary(cities: list, pre_kept: list, deep_kept: list,
+                  base_dir: str, elapsed: int) -> None:
     print("\n" + "═" * 55)
     print("  📊 RÉSUMÉ FINAL")
     print("═" * 55)
-    print(f"  Entrée             : {os.path.basename(input_json)}")
+    print(f"  Villes             : {', '.join(cities)}")
     print(f"  Après préfiltrage  : {len(pre_kept)}")
     print(f"  Après deep filter  : {len(deep_kept)}")
     print(f"  Durée totale       : {elapsed}s")
-    print(f"  Dossier résultats  : {output_dir}/")
-    print(f"\n👉 Lance maintenant : python scorer.py --input {paths['deep_filtered']}")
+    print(f"  Dossier résultats  : {base_dir}/")
 
 
-# ─── POINT D'ENTRÉE ──────────────────────────────────────────
+# ─── PIPELINE PRINCIPAL ──────────────────────────────────────
 
-def main():
+def run_pipeline(cities: list, base_dir: str = "results", min_prescore: int = MIN_PRESCORE,
+                 min_deep_score: int = MIN_DEEP_SCORE, concurrency: int = CONCURRENCY,
+                 skip_deep: bool = False) -> dict:
+    """
+    Lance le pipeline complet pour une ou plusieurs villes.
+    Appelable par le router FastAPI ou en ligne de commande.
+    """
+    all_pre_kept  = []
+    all_deep_kept = []
+    all_paths     = {}
+
+    for city in cities:
+        print(f"\n{'═'*55}")
+        print(f"  🌍 Ville : {city}")
+        print(f"{'═'*55}")
+
+        output_dir = build_output_dir(city, base_dir)
+        os.makedirs(output_dir, exist_ok=True)
+        paths = build_paths(city, output_dir)
+        all_paths[city] = paths
+
+        pre_kept = run_prefilter(city, paths, min_prescore, base_dir)
+        if not pre_kept:
+            print(f"\n⚠️  Aucune entreprise pour {city} — ville ignorée.")
+            continue
+
+        all_pre_kept.extend(pre_kept)
+
+        if skip_deep:
+            print(f"\n⏭️  --skip-deep activé pour {city}.")
+            continue
+
+        deep_kept = run_deep_filter(pre_kept, paths, min_deep_score, concurrency)
+        all_deep_kept.extend(deep_kept)
+
+    return {
+        "pre_kept" : all_pre_kept,
+        "deep_kept": all_deep_kept,
+        "paths"    : all_paths,
+    }
+
+
+# ─── CLI ─────────────────────────────────────────────────────
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pipeline de filtrage complet")
-    parser.add_argument("--input",          required=True,                    help="JSON d'entrée (sortie du scraping)")
-    parser.add_argument("--output-dir",     default=None,                     help="Dossier de sortie (auto-généré si absent)")
+    parser.add_argument("--cities",         nargs="+", default=["Toulouse", "Brussels", "Namur"], help="Villes à filtrer")
+    parser.add_argument("--base-dir",       default="results",        help="Dossier de base contenant les fichiers scraping")
     parser.add_argument("--min-prescore",   type=int, default=MIN_PRESCORE,   help=f"Pré-score minimum (défaut: {MIN_PRESCORE})")
     parser.add_argument("--min-deep-score", type=int, default=MIN_DEEP_SCORE, help=f"Deep score minimum (défaut: {MIN_DEEP_SCORE})")
     parser.add_argument("--concurrency",    type=int, default=CONCURRENCY,    help=f"Workers async (défaut: {CONCURRENCY})")
     parser.add_argument("--skip-deep",      action="store_true",              help="Arrête après le préfiltrage")
     args = parser.parse_args()
 
-    output_dir = build_output_dir(args.input, args.output_dir)
-    os.makedirs(output_dir, exist_ok=True)
-    paths = build_paths(args.input, output_dir)
-    start = datetime.now()
-
-    print("=" * 55)
-    print("  🚀 PIPELINE FILTRAGE COMPLET")
-    print("=" * 55)
-    print(f"  Entrée      : {args.input}")
-    print(f"  Sortie      : {output_dir}/")
-
-    pre_kept = run_prefilter(args.input, paths, args.min_prescore)
-    if not pre_kept:
-        print("\n⚠️  Aucune entreprise n'a passé le préfiltrage — pipeline arrêté.")
-        return
-
-    if args.skip_deep:
-        print(f"\n⏭️  --skip-deep activé — pipeline arrêté après le préfiltrage.")
-        print(f"👉 Résultat : {paths['prefiltered']}")
-        return
-
-    deep_kept = run_deep_filter(pre_kept, paths, args.min_deep_score, args.concurrency)
-    elapsed   = (datetime.now() - start).seconds
-    print_summary(args.input, pre_kept, deep_kept, paths, output_dir, elapsed)
-
-
-if __name__ == "__main__":
-    main()
+    start  = datetime.now()
+    result = run_pipeline(
+        cities        = args.cities,
+        base_dir      = args.base_dir,
+        min_prescore  = args.min_prescore,
+        min_deep_score= args.min_deep_score,
+        concurrency   = args.concurrency,
+        skip_deep     = args.skip_deep,
+    )
+    elapsed = (datetime.now() - start).seconds
+    print_summary(args.cities, result["pre_kept"], result["deep_kept"], args.base_dir, elapsed)

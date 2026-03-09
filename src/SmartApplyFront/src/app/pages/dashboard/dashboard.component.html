@@ -1,0 +1,106 @@
+<div class="dashboard">
+
+  <div class="header">
+    <div>
+      <div class="logo">Smart<span>Apply</span></div>
+      <div class="subtitle">job search pipeline</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="city-input">
+      <label>VILLE</label>
+      <input [(ngModel)]="city" placeholder="Toulouse" />
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn btn-scrape" (click)="onScrape()" [disabled]="loading">
+       Scraper
+    </button>
+    <button class="btn btn-filter" (click)="onFilter()" [disabled]="loading">
+       Filtrer
+    </button>
+    <button class="btn btn-enrich" (click)="onEnrich()" [disabled]="loading">
+      Enrichir
+    </button>
+
+    <div class="status-bar" *ngIf="loading || statusMessage">
+      <div class="dot" *ngIf="loading"></div>
+      {{ statusMessage }}
+    </div>
+  </div>
+
+  <div class="stats" *ngIf="companies.length">
+    <div class="stat">
+      <span class="stat-value">{{ companies.length }}</span>
+      <span class="stat-label">Entreprises</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{ recruiting }}</span>
+      <span class="stat-label">Recrutent</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{ withOffers }}</span>
+      <span class="stat-label">Offres IT</span>
+    </div>
+    <div class="stat">
+      <span class="stat-value">{{ withContact }}</span>
+      <span class="stat-label">Contacts</span>
+    </div>
+  </div>
+
+  <div class="table-wrapper" *ngIf="companies.length; else emptyState">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Domaine</th>
+          <th>Ville</th>
+          <th>Secteur</th>
+          <th>Taille</th>
+          <th>Fondée</th>
+          <th>Recrute</th>
+          <th>Offres</th>
+          <th>Contact</th>
+          <th>Tech</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of companies" [class.error]="c.scrape_status === 'error'">
+          <td>{{ c.nom }}</td>
+          <td><a [href]="'https://' + c.domaine" target="_blank">{{ c.domaine }}</a></td>
+          <td>{{ c.ville }}</td>
+          <td>{{ c.secteur }}</td>
+          <td>{{ c.company_size_hint || '—' }}</td>
+          <td>{{ c.founded_hint || '—' }}</td>
+          <td>
+            <span [class]="'badge ' + (c.is_recruiting ? 'green' : 'grey')">
+              {{ c.is_recruiting ? '✅ Oui' : '❌ Non' }}
+            </span>
+          </td>
+          <td>{{ c.job_offers?.length || '—' }}</td>
+          <td>
+            <a *ngIf="c.contact_form?.url" [href]="c.contact_form.url" target="_blank">🔗</a>
+            <span *ngIf="!c.contact_form?.url">—</span>
+          </td>
+          <td>
+            <div class="tags">
+              <span *ngFor="let t of c.tech_keywords?.slice(0,3)" class="tag">{{ t }}</span>
+            </div>
+          </td>
+          <td><span [class]="'badge ' + c.scrape_status">{{ c.scrape_status }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty">
+      <div class="empty-icon">📭</div>
+      Lance un scraping pour voir les résultats ici
+    </div>
+  </ng-template>
+
+</div>

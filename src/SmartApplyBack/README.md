@@ -4,7 +4,7 @@ A FastAPI backend for automating job search — scraping companies, filtering pr
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Requirements
 
@@ -33,7 +33,7 @@ http://localhost:8000
 
 ---
 
-## 📖 Interactive Documentation
+## Interactive Documentation
 
 FastAPI automatically generates interactive docs. No setup needed.
 
@@ -46,7 +46,7 @@ FastAPI automatically generates interactive docs. No setup needed.
 
 ---
 
-## 🗂 Project Structure
+## Project Structure
 
 ```
 SmartApplyBack/

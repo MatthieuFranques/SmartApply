@@ -11,13 +11,11 @@ import socket
 import argparse
 import requests
 
-sys.path.insert(0, os.path.dirname(__file__))
-
 from bs4             import BeautifulSoup
 from dotenv          import load_dotenv
-from filter_config   import TIMEOUT_HTTP, PAUSE, MIN_PRESCORE, HTTP_HEADERS
-from app.services.filters.filter_json import load_json, save_json, PREFILTER_FIELDS, ELIMINATED_FIELDS
-from filter_scoring  import detect_blacklist, count_it_keywords, compute_prescore
+from app.services.filters.filter_config  import TIMEOUT_HTTP, PAUSE, MIN_PRESCORE, HTTP_HEADERS
+from app.services.filters.filter_json    import load_json, save_json, PREFILTER_FIELDS, ELIMINATED_FIELDS
+from app.services.filters.filter_scoring import detect_blacklist, count_it_keywords, compute_prescore
 
 load_dotenv()
 
