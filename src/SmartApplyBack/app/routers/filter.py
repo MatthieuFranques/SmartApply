@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 import os
+import json
 
 from app.models.filter import FilterRequest, FilterResponse, FilterSummary
 from app.services.filters.filters_main import run_pipeline
@@ -10,12 +11,8 @@ from app.services.filters.filters_main import run_pipeline
 router = APIRouter(prefix="/filter", tags=["Filter"])
 
 
-# curl -X POST http://localhost:8000/filter/start \
-#   -H "Content-Type: application/json" \
-#   -d '{"cities": ["Toulouse", "Brussels", "Namur"]}'
 @router.post("/start", response_model=FilterResponse)
 def start_filter(request: FilterRequest):
-    """Lance le pipeline complet de filtrage (préfiltre + deep filter)."""
     result = run_pipeline(
         cities         = request.cities,
         base_dir       = request.base_dir,
@@ -29,7 +26,7 @@ def start_filter(request: FilterRequest):
         raise HTTPException(status_code=422, detail="Aucune entreprise n'a passé le préfiltrage")
 
     return FilterResponse(
-        message="Pipeline terminé",
+        message="Pipeline terminé ✅",
         summary=FilterSummary(
             cities     = request.cities,
             output_dir = request.base_dir,
@@ -40,13 +37,13 @@ def start_filter(request: FilterRequest):
     )
 
 
-@router.get("/results", response_model=List[str])
+@router.get("/results", response_model=List[dict])
 def get_filter_results(output_dir: str = "./results"):
-    if not os.path.exists(output_dir):
-        raise HTTPException(status_code=404, detail="Dossier introuvable")
+    """Retourne le contenu de deep_results.json."""
+    filepath = os.path.join(output_dir, "deep_results.json")
 
-    files = [f for f in os.listdir(output_dir) if f.endswith(".json")]
-    if not files:
+    if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="Aucun résultat disponible")
 
-    return files
+    with open(filepath, encoding="utf-8") as f:
+        return json.load(f)

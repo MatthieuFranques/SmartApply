@@ -29,7 +29,7 @@ Built with **FastAPI** (Python 3.11), the backend exposes a REST API that orches
 - **FastAPI** — REST API
 - **BeautifulSoup / aiohttp** — Web scraping
 - **Hunter.io** — Company & email discovery
-- **LLM (OpenAI / Claude)** — Cover letter generation
+- **LLM (Mistral)** — Cover letter generation
 
 ### Structure
 
