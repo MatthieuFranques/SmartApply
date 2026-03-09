@@ -19,7 +19,7 @@ from app.services.filters.deep_filter    import deep_filter_async
 
 def get_input_path(city: str, base_dir: str = "results") -> str:
     """Retourne le chemin du fichier scraping pour une ville."""
-    return os.path.join(base_dir, f"scraping_results-{city.lower()}.json")
+    return os.path.join(base_dir, f"scraping_results_{city.lower()}.json")
 
 
 def build_output_dir(city: str, base_dir: str = "results") -> str:
@@ -28,12 +28,11 @@ def build_output_dir(city: str, base_dir: str = "results") -> str:
 
 
 def build_paths(city: str, output_dir: str) -> dict:
-    """Génère tous les chemins de fichiers dans le dossier de sortie."""
     return {
-        "prefiltered"    : os.path.join(output_dir, f"filter_results-{city.lower()}.json"),
-        "pre_eliminated" : os.path.join(output_dir, f"filter_eliminated-{city.lower()}.json"),
-        "deep_filtered"  : os.path.join(output_dir, f"deep_results-{city.lower()}.json"),
-        "deep_eliminated": os.path.join(output_dir, f"deep_eliminated-{city.lower()}.json"),
+        "prefiltered"    : os.path.join(output_dir, f"filter_results_{city.lower()}.json"),
+        "pre_eliminated" : os.path.join(output_dir, f"filter_eliminated_{city.lower()}.json"),
+        "deep_filtered"  : os.path.join(output_dir, f"deep_results_{city.lower()}.json"),
+        "deep_eliminated": os.path.join(output_dir, f"deep_eliminated_{city.lower()}.json"),
     }
 
 

@@ -41,7 +41,8 @@ def enrich_company(row: dict) -> CompanyContext:
         secteur       = row.get("secteur", ""),
         careers_url   = row.get("careers_url", ""),
         site_title    = row.get("site_title", ""),
-        is_recruiting = row.get("it_jobs_found", "").lower() in ("true", "1", "yes"),
+        # is_recruiting = row.get("it_jobs_found", "").lower() in ("true", "1", "yes"),
+        is_recruiting = bool(row.get("it_jobs_found", False)),
     )
 
     url = build_url(ctx.domaine)

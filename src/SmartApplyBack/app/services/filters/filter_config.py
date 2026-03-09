@@ -5,7 +5,7 @@ Constantes partagées par prefilter.py et deep_filter.py.
 Modifier ici pour affiner les filtres sans toucher à la logique.
 """
 
-# ─── HTTP ────────────────────────────────────────────────────
+import os
 
 TIMEOUT_HTTP = 6      # secondes max par requête
 PAUSE        = 0.3    # pause entre chaque domaine (politeness)
@@ -77,8 +77,8 @@ MX_PROVIDERS = {
 
 def get_input_path(city: str, base_dir: str = "results") -> str:
     """Retourne le chemin du fichier scraping pour une ville."""
-    return os.path.join(base_dir, f"scraping_results-{city.lower()}.json")
+    return os.path.join(base_dir, f"scraping_results_{city.lower()}.json")
 
 def get_output_path(city: str, base_dir: str = "results") -> str:
     """Retourne le chemin du fichier prefiltered pour une ville."""
-    return os.path.join(base_dir, f"filter_results-{city.lower()}.json")
+    return os.path.join(base_dir, f"filter_results_{city.lower()}.json")
