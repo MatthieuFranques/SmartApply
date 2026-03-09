@@ -14,7 +14,7 @@ router = APIRouter(prefix="/scraping", tags=["Scraping"])
 # ─── Routes ──────────────────────────────────────────────────
 # curl -X POST http://localhost:8000/scraping/start \
 #   -H "Content-Type: application/json" \
-#   -d '{"cities": ["Toulouse"], "output_dir": "results"}'
+#   -d '{"cities": ["Toulouse","Namur", "Brussels"], "output_dir": "results"}'
 @router.post("/start", response_model=ScrapingResponse)
 def start_scraping(request: ScrapingRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_scraping, request.cities, request.output_dir)

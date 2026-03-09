@@ -33,20 +33,20 @@ def run_scraping(cities: list = ["Toulouse", "Brussels", "Namur"], output_dir: s
     for city in cities:
         json_file = os.path.join(output_dir, f"scraping_results_{city.lower()}.json")
         print(f"\n{'═'*50}")
-        print(f"🌍 Ville : {city}  →  {json_file}")
+        print(f"Ville : {city}  →  {json_file}")
         print(f"{'═'*50}")
 
         # Charge l'existant pour cette ville
         existing = load_from_json(json_file)
         if not existing:
-            print("📂 Aucun fichier existant — démarrage from scratch")
+            print("Aucun fichier existant — démarrage from scratch")
 
         existing_domains = {c["domaine"] for c in existing}
         all_companies    = list(existing)
 
         # Scrape chaque secteur pour cette ville
         for sector in SECTORS:
-            print(f"\n🚀 Secteur : {sector}")
+            print(f"\n Secteur : {sector}")
             results = scrape_companies(sector, [city])
 
             new = [r for r in results if r["domaine"] not in existing_domains]
@@ -69,7 +69,7 @@ def run_scraping(cities: list = ["Toulouse", "Brussels", "Namur"], output_dir: s
     # ─── Résumé global ───────────────────────────────────────
 
     print(f"\n{'═'*50}")
-    print(f"📊 Résumé final :")
+    print(f"Résumé final :")
     total = 0
     for city, companies in summary.items():
         n = len(companies)
