@@ -1,5 +1,7 @@
 # app/routers/enrich.py
 
+from urllib import request
+
 from fastapi import APIRouter, HTTPException
 from typing import List
 import os
@@ -27,8 +29,8 @@ def start_enrich(request: EnrichRequest):
     if not os.path.exists(input_file):
         raise HTTPException(status_code=404, detail=f"Fichier introuvable : {input_file}")
 
-    output_file = request.output_file or build_output_file(input_file)
-    summary     = run_enrich(input_file, output_file, request.limit)
+    output_file = request.output_file or build_output_file(request.base_dir or "results")
+    summary = run_enrich(input_file, output_file, request.limit)
 
     return EnrichResponse(message="Enrichissement terminé ", summary=summary)
 
