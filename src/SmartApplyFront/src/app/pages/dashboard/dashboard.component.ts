@@ -15,10 +15,12 @@ import { Company } from '../../models/company.model';
 })
 export class DashboardComponent {
 
-  city          : string    = 'Toulouse';
-  companies     : Company[] = [];
-  loading       : boolean   = false;
-  statusMessage : string    = '';
+  city            : string   = 'Toulouse';
+  companies       : Company[] = [];
+  loading         : boolean  = false;
+  statusMessage   : string   = '';
+  selectedCity    : string   = 'all';
+  availableCities : string[] = [];
 
   private api = 'http://localhost:8000';
 
@@ -26,9 +28,26 @@ export class DashboardComponent {
 
   // ─── Stats calculées ─────────────────────────────────────
 
-  get recruiting()  { return this.companies.filter(c => c.is_recruiting).length; }
-  get withOffers()  { return this.companies.filter(c => c.job_offers?.length).length; }
-  get withContact() { return this.companies.filter(c => c.contact_form?.url).length; }
+  get filteredCompanies() {
+    if (this.selectedCity === 'all') return this.companies;
+    return this.companies.filter(c =>
+      c.ville?.toLowerCase() === this.selectedCity.toLowerCase()
+    );
+  }
+
+  get recruiting()  { return this.filteredCompanies.filter(c => c.is_recruiting).length; }
+  get withOffers()  { return this.filteredCompanies.filter(c => c.job_offers?.length).length; }
+  get withContact() { return this.filteredCompanies.filter(c => c.contact_form?.url).length; }
+
+  filterByCity(city: string) {
+    this.selectedCity = city;
+  }
+
+  countByCity(city: string) {
+    return this.companies.filter(c =>
+      c.ville?.toLowerCase() === city.toLowerCase()
+    ).length;
+  }
 
   // ─── Actions pipeline ────────────────────────────────────
 
@@ -38,11 +57,11 @@ export class DashboardComponent {
     this.http.post(`${this.api}/scraping/start`, { cities: [this.city] })
       .subscribe({
         next: () => {
-          this.statusMessage = '✅ Scraping terminé';
+          this.statusMessage = 'Scraping terminé';
           this.loadResults();
         },
         error: () => {
-          this.statusMessage = '❌ Erreur scraping';
+          this.statusMessage = 'Erreur scraping';
           this.loading = false;
         },
         complete: () => this.loading = false
@@ -55,11 +74,11 @@ export class DashboardComponent {
     this.http.post(`${this.api}/filter/start`, { cities: [this.city] })
       .subscribe({
         next: () => {
-          this.statusMessage = '✅ Filtrage terminé';
+          this.statusMessage = 'Filtrage terminé';
           this.loadResults();
         },
         error: () => {
-          this.statusMessage = '❌ Erreur filtrage';
+          this.statusMessage = 'Erreur filtrage';
           this.loading = false;
         },
         complete: () => this.loading = false
@@ -69,15 +88,13 @@ export class DashboardComponent {
   onEnrich() {
     this.loading = true;
     this.statusMessage = 'Enrichissement en cours...';
-    this.http.post(`${this.api}/enrich/start-sync`, {
-      input_file: `results/${this.city.toLowerCase()}/deep_results-${this.city.toLowerCase()}.json`
-    }).subscribe({
+    this.http.post(`${this.api}/enrich/start`, {}).subscribe({
       next: () => {
-        this.statusMessage = '✅ Enrichissement terminé';
+        this.statusMessage = 'Enrichissement terminé';
         this.loadResults();
       },
       error: () => {
-        this.statusMessage = '❌ Erreur enrichissement';
+        this.statusMessage = 'Erreur enrichissement';
         this.loading = false;
       },
       complete: () => this.loading = false
@@ -87,11 +104,12 @@ export class DashboardComponent {
   // ─── Chargement des résultats ────────────────────────────
 
   loadResults() {
-    this.http.get<Company[]>(
-      `${this.api}/enrich/results/${this.city.toLowerCase()}`
-    ).subscribe({
-      next: (data) => this.companies = data,
-      error: () => this.statusMessage += ' (aucun résultat chargé)'
+    this.http.get<Company[]>(`${this.api}/enrich/results`).subscribe({
+      next: (data) => {
+        this.companies       = data;
+        this.availableCities = [...new Set(data.map(c => c.ville).filter(Boolean))];
+      },
+      error: () => this.statusMessage += ' (aucun résultat)'
     });
   }
 }
