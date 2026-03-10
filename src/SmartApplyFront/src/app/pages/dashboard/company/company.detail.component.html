@@ -1,0 +1,146 @@
+<!-- Overlay backdrop -->
+<div class="backdrop" [class.visible]="visible" (click)="close()"></div>
+
+<!-- Slide panel -->
+<div class="panel" [class.open]="visible" *ngIf="company">
+
+  <!-- Header -->
+  <div class="panel-header">
+    <div class="panel-title">
+      <div class="company-avatar">{{ company.nom?.charAt(0) }}</div>
+      <div>
+        <h2>{{ company.nom }}</h2>
+        <a [href]="'https://' + company.domaine" target="_blank" class="domain-link">
+          🌐 {{ company.domaine }}
+        </a>
+      </div>
+    </div>
+    <button class="close-btn" (click)="close()">✕</button>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-bar">
+    <button class="btn-action btn-letter"
+            (click)="generateLetter()"
+            [disabled]="letterLoading">
+      {{ letterLoading ? 'Génération...' : 'Lettre de motivation' }}
+    </button>
+    <button class="btn-action btn-delete"
+            (click)="confirmDelete()"
+            [disabled]="deleteLoading">
+      {{ deleteLoading ? 'Suppression...' : 'Supprimer' }}
+    </button>
+  </div>
+
+  <!-- Delete confirm banner -->
+  <div class="confirm-banner" *ngIf="showDeleteConfirm">
+    <span>Supprimer <strong>{{ company.nom }}</strong> définitivement ?</span>
+    <div class="confirm-actions">
+      <button class="confirm-yes" (click)="deleteCompany()">Confirmer</button>
+      <button class="confirm-no"  (click)="showDeleteConfirm = false">Annuler</button>
+    </div>
+  </div>
+
+  <!-- Letter Editor -->
+  <div class="letter-editor" *ngIf="showLetterEditor">
+    <div class="editor-header">
+      <div class="editor-title">
+        Lettre de motivation — {{ company.nom }}
+      </div>
+      <div class="editor-actions">
+        <button class="editor-btn copy" (click)="copyLetter()">
+          {{ copied ? '✅ Copié' : '📋 Copier' }}
+        </button>
+        <button class="editor-btn close-editor" (click)="showLetterEditor = false">✕</button>
+      </div>
+    </div>
+    <div class="editor-error" *ngIf="letterError">⚠️ {{ letterError }}</div>
+    <textarea
+      class="editor-textarea"
+      [(ngModel)]="letterContent"
+      placeholder="La lettre de motivation apparaîtra ici..."
+      spellcheck="true">
+    </textarea>
+    <div class="editor-footer">
+      <span class="char-count">{{ letterContent.length }} caractères</span>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="badge-row">
+    <span class="badge" [class.green]="company.is_recruiting" [class.grey]="!company.is_recruiting">
+      {{ company.is_recruiting ? '✅ Recrute' : '❌ Ne recrute pas' }}
+    </span>
+    <span class="badge info" *ngIf="company.company_size_hint"> {{ company.company_size_hint }}</span>
+    <span class="badge info" *ngIf="company.ville">📍 {{ company.ville }}</span>
+    <span class="badge info" *ngIf="company.secteur"> {{ company.secteur }}</span>
+  </div>
+
+  <div class="error-banner" *ngIf="company.scrape_status === 'error'">
+    ⚠️ Erreur lors du scraping de cette entreprise
+  </div>
+
+  <div class="section" *ngIf="company.description">
+    <div class="section-title">À propos</div>
+    <p class="description-text">{{ company.description }}</p>
+  </div>
+
+  <div class="section" *ngIf="company.tech_stack?.length">
+    <div class="section-title">Stack Technique</div>
+    <div class="tag-list">
+      <span class="tag tech" *ngFor="let tech of company.tech_stack">{{ tech }}</span>
+    </div>
+  </div>
+
+  <div class="section" *ngIf="company.keywords?.length">
+    <div class="section-title">Signaux détectés</div>
+    <div class="tag-list">
+      <span class="tag signal" *ngFor="let kw of company.keywords">{{ kw }}</span>
+    </div>
+  </div>
+
+  <div class="section" *ngIf="jobOffers.length">
+    <div class="section-title">Offres d'emploi ({{ jobOffers.length }})</div>
+    <div class="offer-list">
+      <div class="offer-card" *ngFor="let offer of jobOffers">
+        <div class="offer-title">{{ offer.title || offer.poste || 'Offre sans titre' }}</div>
+        <div class="offer-meta">
+          <span *ngIf="offer.location">📍 {{ offer.location }}</span>
+          <span *ngIf="offer.contract"> {{ offer.contract }}</span>
+          <span *ngIf="offer.date"> {{ offer.date }}</span>
+        </div>
+        <a *ngIf="offer.url" [href]="offer.url" target="_blank" class="offer-link">Voir l'offre →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Contact</div>
+    <div class="contact-block">
+      <div class="contact-row" *ngIf="company.contact_form?.url">
+        <span class="contact-icon">📬</span>
+        <a [href]="company.contact_form.url" target="_blank" class="contact-link">Formulaire de contact</a>
+      </div>
+      <div class="contact-row" *ngIf="company.email">
+        <span class="contact-icon">✉️</span>
+        <a [href]="'mailto:' + company.email" class="contact-link">{{ company.email }}</a>
+      </div>
+      <div class="contact-row" *ngIf="company.linkedin">
+        <span class="contact-icon">💼</span>
+        <a [href]="company.linkedin" target="_blank" class="contact-link">LinkedIn</a>
+      </div>
+      <div class="no-contact" *ngIf="!hasContact && !company.email && !company.linkedin">
+        Aucune information de contact disponible
+      </div>
+    </div>
+  </div>
+
+  <div class="section" *ngIf="company.relevance_score !== undefined">
+    <div class="section-title">Score de pertinence</div>
+    <div class="score-bar-wrap">
+      <div class="score-bar" [style.width.%]="company.relevance_score * 10"></div>
+      <span class="score-value">{{ company.relevance_score }}/10</span>
+    </div>
+  </div>
+
+</div>

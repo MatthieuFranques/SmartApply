@@ -5,11 +5,12 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Company } from '../../models/company.model';
+import { CompanyDetailComponent } from './company/company.detail.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CompanyDetailComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -21,6 +22,7 @@ export class DashboardComponent {
   statusMessage   : string   = '';
   selectedCity    : string   = 'all';
   availableCities : string[] = [];
+  selectedCompany : any      = null;
 
   private api = 'http://localhost:8000';
 
@@ -47,6 +49,16 @@ export class DashboardComponent {
     return this.companies.filter(c =>
       c.ville?.toLowerCase() === city.toLowerCase()
     ).length;
+  }
+
+  // ─── Detail panel ────────────────────────────────────────
+
+  openDetail(company: any) {
+    this.selectedCompany = company;
+  }
+
+  closeDetail() {
+    this.selectedCompany = null;
   }
 
   // ─── Actions pipeline ────────────────────────────────────

@@ -75,7 +75,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let c of filteredCompanies"
-              [class.row-error]="c.scrape_status === 'error'">
+              [class.row-error]="c.scrape_status === 'error'"
+              (click)="openDetail(c)"
+              style="cursor: pointer;">
             <td class="td-truncate" [title]="c.nom">{{ c.nom }}</td>
             <td><a [href]="'https://' + c.domaine" target="_blank">{{ c.domaine }}</a></td>
             <td>{{ c.ville }}</td>
@@ -105,3 +107,8 @@
   </ng-template>
 
 </div>
+
+<app-company-detail
+  [company]="selectedCompany"
+  (closed)="closeDetail()">
+</app-company-detail>
