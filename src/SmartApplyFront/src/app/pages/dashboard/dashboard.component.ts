@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Company } from '../../models/company.model';
-import { CompanyDetailComponent } from './company/company.detail.component';
+import { CompanyDetailComponent } from '../company/company.detail.component';
 
 @Component({
   selector: 'app-dashboard',

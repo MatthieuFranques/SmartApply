@@ -91,29 +91,7 @@
       <span class="tag tech" *ngFor="let tech of company.tech_stack">{{ tech }}</span>
     </div>
   </div>
-
-  <div class="section" *ngIf="company.keywords?.length">
-    <div class="section-title">Signaux détectés</div>
-    <div class="tag-list">
-      <span class="tag signal" *ngFor="let kw of company.keywords">{{ kw }}</span>
-    </div>
-  </div>
-
-  <div class="section" *ngIf="jobOffers.length">
-    <div class="section-title">Offres d'emploi ({{ jobOffers.length }})</div>
-    <div class="offer-list">
-      <div class="offer-card" *ngFor="let offer of jobOffers">
-        <div class="offer-title">{{ offer.title || offer.poste || 'Offre sans titre' }}</div>
-        <div class="offer-meta">
-          <span *ngIf="offer.location">📍 {{ offer.location }}</span>
-          <span *ngIf="offer.contract"> {{ offer.contract }}</span>
-          <span *ngIf="offer.date"> {{ offer.date }}</span>
-        </div>
-        <a *ngIf="offer.url" [href]="offer.url" target="_blank" class="offer-link">Voir l'offre →</a>
-      </div>
-    </div>
-  </div>
-
+  <!-- Contact -->
   <div class="section">
     <div class="section-title">Contact</div>
     <div class="contact-block">
@@ -134,12 +112,19 @@
       </div>
     </div>
   </div>
-
-  <div class="section" *ngIf="company.relevance_score !== undefined">
-    <div class="section-title">Score de pertinence</div>
-    <div class="score-bar-wrap">
-      <div class="score-bar" [style.width.%]="company.relevance_score * 10"></div>
-      <span class="score-value">{{ company.relevance_score }}/10</span>
+    <!-- Job Offers -->
+  <div class="section" *ngIf="jobOffers.length">
+    <div class="section-title">Offres d'emploi ({{ jobOffers.length }})</div>
+    <div class="offer-list">
+      <div class="offer-card" *ngFor="let offer of jobOffers">
+        <div class="offer-title">{{ offer.title || offer.poste || 'Offre sans titre' }}</div>
+        <div class="offer-meta">
+          <span *ngIf="offer.location">📍 {{ offer.location }}</span>
+          <span *ngIf="offer.contract"> {{ offer.contract }}</span>
+          <span *ngIf="offer.date"> {{ offer.date }}</span>
+        </div>
+        <a *ngIf="offer.url" [href]="offer.url" target="_blank" class="offer-link">Voir l'offre →</a>
+      </div>
     </div>
   </div>
 
