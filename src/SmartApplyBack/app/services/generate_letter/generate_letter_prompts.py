@@ -3,7 +3,7 @@
 # Construction des prompts — 2 passes de génération
 # ============================================================
 
-from config import REFERENCE_LETTER
+from app.services.generate_letter.generate_letter_config  import REFERENCE_LETTER
 
 
 def build_analysis_prompt(company: dict, profile: dict) -> str:

@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 from tqdm import tqdm
 
-from generator import (
+from app.services.generate_letter.generate_letter_generator import (
     generate_letter,
     generate_contact_form,
     determine_mode,

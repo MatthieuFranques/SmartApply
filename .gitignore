@@ -1,6 +1,7 @@
 .env
 mon_cv.pdf
 **/results/
+src/SmartApplyBack/letters/
 **/__pycache__/
 
 

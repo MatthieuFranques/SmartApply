@@ -9,8 +9,8 @@ from pathlib import Path
 
 import ollama
 
-from config import PROFILE
-from prompts import build_analysis_prompt, build_letter_prompt, build_contact_form_prompt
+from app.services.generate_letter.generate_letter_config import PROFILE
+from app.services.generate_letter.generate_letter_prompts import build_analysis_prompt, build_letter_prompt, build_contact_form_prompt
 
 
 def build_header(profile: dict) -> str:
