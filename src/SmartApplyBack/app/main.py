@@ -1,6 +1,6 @@
 # app/main.py
 from fastapi import FastAPI
-from app.routers import scraping, filter,  enrich, letter
+from app.routers import scraping, filter,  enrich, letter, gmail
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -17,4 +17,5 @@ app.include_router(scraping.router)
 app.include_router(filter.router)
 app.include_router(enrich.router)
 app.include_router(letter.router)
+app.include_router(gmail.router)
 # python -m uvicorn app.main:app --reload
