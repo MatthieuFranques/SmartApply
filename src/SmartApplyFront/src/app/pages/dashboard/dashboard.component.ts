@@ -1,20 +1,21 @@
-// dashboard.component.ts
-
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Company } from '../../models/company.model';
 import { CompanyDetailComponent } from '../company/company.detail.component';
+import { ApplicationsComponent } from '../applications/applications.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, CompanyDetailComponent],
+  imports: [CommonModule, FormsModule, CompanyDetailComponent, ApplicationsComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent {
+
+  activeTab       : 'companies' | 'applications' = 'companies';
 
   city            : string   = 'Toulouse';
   companies       : Company[] = [];
@@ -61,6 +62,11 @@ export class DashboardComponent {
     this.selectedCompany = null;
   }
 
+  onDeleted(nom: string) {
+    this.companies = this.companies.filter(c => c.nom !== nom);
+    this.selectedCompany = null;
+  }
+
   // ─── Actions pipeline ────────────────────────────────────
 
   onScrape() {
@@ -68,14 +74,8 @@ export class DashboardComponent {
     this.statusMessage = 'Scraping en cours...';
     this.http.post(`${this.api}/scraping/start`, { cities: [this.city] })
       .subscribe({
-        next: () => {
-          this.statusMessage = 'Scraping terminé';
-          this.loadResults();
-        },
-        error: () => {
-          this.statusMessage = 'Erreur scraping';
-          this.loading = false;
-        },
+        next: () => { this.statusMessage = 'Scraping terminé'; this.loadResults(); },
+        error: () => { this.statusMessage = 'Erreur scraping'; this.loading = false; },
         complete: () => this.loading = false
       });
   }
@@ -85,14 +85,8 @@ export class DashboardComponent {
     this.statusMessage = 'Filtrage en cours...';
     this.http.post(`${this.api}/filter/start`, { cities: [this.city] })
       .subscribe({
-        next: () => {
-          this.statusMessage = 'Filtrage terminé';
-          this.loadResults();
-        },
-        error: () => {
-          this.statusMessage = 'Erreur filtrage';
-          this.loading = false;
-        },
+        next: () => { this.statusMessage = 'Filtrage terminé'; this.loadResults(); },
+        error: () => { this.statusMessage = 'Erreur filtrage'; this.loading = false; },
         complete: () => this.loading = false
       });
   }
@@ -101,14 +95,8 @@ export class DashboardComponent {
     this.loading = true;
     this.statusMessage = 'Enrichissement en cours...';
     this.http.post(`${this.api}/enrich/start`, {}).subscribe({
-      next: () => {
-        this.statusMessage = 'Enrichissement terminé';
-        this.loadResults();
-      },
-      error: () => {
-        this.statusMessage = 'Erreur enrichissement';
-        this.loading = false;
-      },
+      next: () => { this.statusMessage = 'Enrichissement terminé'; this.loadResults(); },
+      error: () => { this.statusMessage = 'Erreur enrichissement'; this.loading = false; },
       complete: () => this.loading = false
     });
   }

@@ -1,0 +1,63 @@
+<div class="applications-container">
+
+  <div class="applications-header">
+    <h2>Mes candidatures</h2>
+    <button class="btn-refresh" (click)="loadApplications()" [disabled]="loading">
+      {{ loading ? 'CHARGEMENT...' : 'RAFRAÎCHIR' }}
+    </button>
+  </div>
+
+  <!-- Filtres par statut -->
+  <div class="filter-bar">
+    <button
+      *ngFor="let s of statuses"
+      class="filter-btn"
+      [class.active]="activeStatus === s"
+      (click)="activeStatus = s">
+      {{ labelFor(s) }}
+    </button>
+  </div>
+
+  <!-- Erreur -->
+  <div class="error-banner" *ngIf="error">
+    ⚠️ {{ error }}
+  </div>
+
+  <!-- Skeleton loading -->
+  <div class="skeleton-list" *ngIf="loading">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3]"></div>
+  </div>
+
+  <!-- Liste des candidatures -->
+  <div class="card-list" *ngIf="!loading">
+    <div
+      class="appli-card"
+      *ngFor="let app of filtered"
+      [class.envoye]="app.status === 'envoye'"
+      [class.relance]="app.status === 'relance'"
+      [class.refuse]="app.status === 'refuse'">
+
+      <div class="card-avatar">{{ app.company?.charAt(0) }}</div>
+
+      <div class="card-body">
+        <div class="card-top">
+          <span class="company-name">{{ app.company }}</span>
+          <span class="status-badge {{ app.status }}">{{ labelFor(app.status) }}</span>
+        </div>
+        <div class="card-poste">{{ app.poste }}</div>
+        <div class="card-meta">
+          <span>📅 {{ app.date | date:'dd/MM/yyyy' }}</span>
+          <a *ngIf="app.url" [href]="app.url" target="_blank" class="offer-link">
+            Voir l'offre →
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="empty-state" *ngIf="filtered.length === 0">
+      Aucune candidature pour ce statut.
+    </div>
+  </div>
+
+</div>
