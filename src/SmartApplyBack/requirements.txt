@@ -8,9 +8,20 @@ python-dotenv
 # SCRAPING & NLP
 beautifulsoup4
 
+# DATABASE (NoSQL - MongoDB)
+motor
+pydantic
+pydantic-settings
+
 # OTHER
 fastapi
 uvicorn 
+aiohttp
+aiodns
+charset-normalizer
+
+# IA
+ollama
 
 # TESTING
 pytest

@@ -1,0 +1,41 @@
+services:
+  # MongoDB : 
+  # mongodb:
+  #   image: mongo:latest
+  #   container_name: smartapply-db
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo_data:/data/db
+
+  # Backend : 
+  backend:
+    build: ./src/SmartApplyBack
+    container_name: smartapply-api
+    ports:
+      - "8000:8000"
+    env_file: ./src/SmartApplyBack/.env
+    # depends_on:
+    #   - mongodb
+    volumes:
+      - ./src/SmartApplyBack:/app # Hot-Reload
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  
+  frontend:
+    build: ./src/SmartApplyFront
+    container_name: smartapply-ui
+    ports:
+      - "4200:4200"
+    depends_on:
+      - backend
+    volumes:
+      - ./src/SmartApplyFront:/app #Hot-Reload
+      - /app/node_modules
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
