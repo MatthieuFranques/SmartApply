@@ -1,0 +1,27 @@
+# GMAIL API REQUIREMENTS
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+python-dotenv
+
+# SCRAPING & NLP
+beautifulsoup4
+
+# DATABASE (NoSQL - MongoDB)
+motor
+pydantic
+pydantic-settings
+
+# OTHER
+fastapi
+uvicorn 
+aiohttp
+aiodns
+charset-normalizer
+
+# IA
+ollama
+
+# TESTING
+pytest

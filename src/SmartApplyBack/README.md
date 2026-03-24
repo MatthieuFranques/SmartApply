@@ -8,21 +8,20 @@ A FastAPI backend for automating job search — scraping companies, filtering pr
 
 ### Requirements
 
-- Python 3.11+
-- pip packages: `fastapi uvicorn requests beautifulsoup4 aiohttp aiodns python-dotenv tqdm`
+[SETUP.md](/docs/SETUP.md)
 
 ### Install dependencies
 
 ```bash
-pip install fastapi uvicorn requests beautifulsoup4 aiohttp aiodns python-dotenv tqdm
+docker-compose up --build
 ```
 
 ### Run the API
 
-From the `SmartApplyBack/` directory:
+From the `SmartApply/` directory:
 
 ```bash
-python -m uvicorn app.main:app --reload
+docker-compose up
 ```
 
 The API will be available at:
@@ -45,30 +44,3 @@ FastAPI automatically generates interactive docs. No setup needed.
 > 💡 **Recommended**: Use Swagger UI (`/docs`) to explore and test all endpoints without any extra tool.
 
 ---
-
-## Project Structure
-
-```
-SmartApplyBack/
-├── app/
-│   ├── main.py               # Entry point
-│   ├── routers/
-│   │   ├── scraping.py       # Scraping routes
-│   │   ├── filter.py         # Filter routes
-│   │   └── enrich.py         # Enrich routes
-│   │   └── generate_letter.py# Ganerate letter routes
-
-│   ├── models/
-│   │   ├── scraping.py       # Scraping models
-│   │   ├── filter.py         # Filter models
-│   │   └── enrich.py         # Enrich models
-│   │   └── generate_letter.py# Ganerate letter models
-
-│   └── services/
-│       ├── scraping/         # Scraping logic
-│       ├── filters/          # Filter logic
-│       └── enrich/           # Enrich logic
-│       └── generate_letter/  # Ganerate letter logic
-└── results/                  # Output JSON files
-```
-

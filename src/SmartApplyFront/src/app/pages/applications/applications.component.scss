@@ -1,0 +1,307 @@
+:host {
+  --bg:        #0a0c10;
+  --surface:   #111318;
+  --surface2:  #181b22;
+  --border:    #1f2330;
+  --accent:    #00e5a0;
+  --accent2:   #0066ff;
+  --danger:    #ff4455;
+  --warning:   #ffaa00;
+  --text:      #e8eaf0;
+  --muted:     #4a5068;
+  --radius:    8px;
+}
+
+.applications-container {
+  font-family: 'DM Sans', sans-serif;
+  min-height: 400px;
+}
+
+// ── Auth checking ─────────────────────────────────────────────
+.auth-checking {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 80px 32px;
+  color: var(--muted); font-size: 12px; letter-spacing: 1px;
+  font-family: 'Space Mono', monospace;
+}
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Auth screen ───────────────────────────────────────────────
+.auth-screen {
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px 24px;
+}
+.auth-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 40px 48px;
+  max-width: 420px; width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 16px; text-align: center;
+}
+.auth-icon { font-size: 40px; }
+.auth-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 18px; font-weight: 700; color: var(--text); margin: 0;
+}
+.auth-desc {
+  font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0;
+}
+.auth-scopes {
+  display: flex; flex-direction: column; gap: 8px; width: 100%;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.scope-item { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; text-align: left; }
+.btn-connect {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 24px; width: 100%;
+  background: transparent; border: 1px solid var(--accent2);
+  border-radius: var(--radius); color: var(--accent2);
+  font-family: 'Space Mono', monospace; font-size: 12px;
+  font-weight: 700; letter-spacing: 1px; cursor: pointer;
+  transition: all 0.15s;
+  &:hover { background: var(--accent2); color: #fff; }
+}
+.google-icon {
+  width: 20px; height: 20px; background: #fff; color: var(--accent2);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 900;
+}
+
+// ── Header ────────────────────────────────────────────────────
+.applications-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 16px;
+}
+.header-left {
+  display: flex; flex-direction: column; gap: 4px;
+  h2 {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; font-weight: 700; letter-spacing: 2px;
+    color: var(--text); margin: 0;
+  }
+}
+.sync-info {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: 0.5px;
+}
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn-refresh {
+  font-family: 'Space Mono', monospace;
+  padding: 8px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  color: var(--accent); cursor: pointer; font-size: 11px;
+  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
+  &:hover:not(:disabled) { border-color: var(--accent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+.btn-reset {
+  font-family: 'Space Mono', monospace;
+  padding: 8px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: transparent;
+  color: var(--muted); cursor: pointer; font-size: 11px;
+  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
+  &:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// ── Sync result ───────────────────────────────────────────────
+.sync-result {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; color: var(--accent); letter-spacing: 0.5px;
+  padding: 8px 14px; background: rgba(0,229,160,0.06);
+  border: 1px solid rgba(0,229,160,0.15); border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.syncing-banner {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  color: var(--muted); padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 16px;
+}
+.spinner-sm {
+  width: 14px; height: 14px; flex-shrink: 0;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+
+// ── Filtres ───────────────────────────────────────────────────
+.filter-bar {
+  display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.filter-btn {
+  font-family: 'Space Mono', monospace;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; cursor: pointer; transition: all 0.15s;
+  &:hover { border-color: var(--text); color: var(--text); }
+  &.active { background: var(--accent); border-color: var(--accent); color: #000; }
+}
+
+// ── Tableau ───────────────────────────────────────────────────
+.table-wrapper {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto; overflow-y: auto; max-height: 560px;
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: var(--surface); }
+  &::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+thead {
+  position: sticky; top: 0; z-index: 10; background: var(--surface2);
+  th {
+    padding: 11px 14px; text-align: left;
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border); transition: background 0.1s;
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--surface2); }
+  &.row-refuse  { border-left: 3px solid var(--danger); }
+  &.row-entretien { border-left: 3px solid var(--accent); }
+  &.row-offre   { border-left: 3px solid #a855f7; }
+  &.row-decision { border-left: 3px solid var(--warning); }
+  &.row-attente  { border-left: 3px solid var(--border); }
+
+  td {
+    padding: 11px 14px; vertical-align: middle; color: var(--text);
+  }
+}
+
+// ── Cell entreprise ───────────────────────────────────────────
+.cell-entreprise {
+  display: flex; align-items: center; gap: 10px;
+}
+.row-avatar {
+  width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent2), #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace; font-size: 13px;
+  font-weight: 700; color: #fff;
+}
+
+// ── Badges statut ─────────────────────────────────────────────
+.badge {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  padding: 3px 10px; border-radius: 20px; font-weight: 700;
+  letter-spacing: 0.5px; white-space: nowrap;
+
+  &.badge-attente   { background: rgba(74,80,104,0.2);    color: var(--muted);   border: 1px solid var(--border); }
+  &.badge-entretien { background: rgba(0,229,160,0.12);   color: var(--accent);  border: 1px solid rgba(0,229,160,0.25); }
+  &.badge-offre     { background: rgba(168,85,247,0.12);  color: #a855f7;        border: 1px solid rgba(168,85,247,0.25); }
+  &.badge-decision  { background: rgba(255,170,0,0.12);   color: var(--warning); border: 1px solid rgba(255,170,0,0.25); }
+  &.badge-refuse    { background: rgba(255,68,85,0.12);   color: var(--danger);  border: 1px solid rgba(255,68,85,0.25); }
+}
+
+// ── Utilitaires td ────────────────────────────────────────────
+.td-truncate {
+  max-width: 180px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.td-date {
+  font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+  white-space: nowrap;
+}
+.td-muted { color: var(--muted); font-size: 12px; }
+
+.gmail-link {
+  color: var(--accent2); text-decoration: none; font-size: 15px;
+  &:hover { color: var(--text); }
+}
+
+// ── Skeleton ──────────────────────────────────────────────────
+.skeleton-list { display: flex; flex-direction: column; gap: 8px; }
+.skeleton-card {
+  height: 48px; border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ── Erreur ────────────────────────────────────────────────────
+.error-banner {
+  background: rgba(255,68,85,0.1); border: 1px solid rgba(255,68,85,0.3);
+  border-radius: var(--radius); color: var(--danger);
+  padding: 12px 16px; font-size: 12px; margin-bottom: 16px;
+  font-family: 'Space Mono', monospace;
+}
+
+// ── Empty ─────────────────────────────────────────────────────
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding: 64px 32px; color: var(--muted);
+  font-size: 12px; letter-spacing: 1px;
+  font-family: 'Space Mono', monospace;
+  .empty-icon { font-size: 36px; opacity: 0.4; }
+}
+
+// ─── Stats ───────────────────────────────────────────────────
+// ── Stats ─────────────────────────────────────────────────────
+.stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+ 
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 90px;
+ 
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+ 
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+ 
+  // Couleurs par statut
+  .stat-entretien { color: var(--accent); }
+  .stat-offre     { color: #a855f7; }
+  .stat-attente   { color: var(--warning); }
+  .stat-refuse    { color: var(--danger); }
+ 
+  // Carte "nouvelles depuis sync"
+  &.stat-sync {
+    border-color: rgba(0,229,160,0.2);
+    background: rgba(0,229,160,0.05);
+  }
+  .stat-sync-value { color: var(--accent); }
+}

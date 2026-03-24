@@ -1,7 +1,9 @@
 .env
 mon_cv.pdf
 **/results/
+src/SmartApplyBack/letters/
 **/__pycache__/
-
-
+src/SmartApplyBack/token.json
+src/SmartApplyBack/jobs_history.json
+src/SmartApplyBack/sync_meta.json
 cv.pdf

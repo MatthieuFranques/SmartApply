@@ -9,87 +9,46 @@
 > **SmartApply** is a job search optimization tool that automates company scraping, prospect filtering, data enrichment, and cover letter generation using AI.
 
 ---
-
-## 🗂 Project Structure
-
-```
-SmartApply/
-├── src/
-│   ├── SmartApplyBack/     ← FastAPI REST API (Python)
-│   └── SmartApplyFront/    ← Angular Frontend
-```
-
+---
+| **Lead Explorer (Scraping)** | **Application Tracker (Gmail)** |
+| :---: | :---: |
+| ![Scraping](./docs/screens/scraping_dashboard.png) | ![Gmail](./docs/screens/gmail_dashboard.png) |
 ---
 
-## ⚙️ Backend — SmartApplyBack
 
-Built with **FastAPI** (Python 3.11), the backend exposes a REST API that orchestrates the full job search pipeline.
+## Key Features
 
-### Stack
-- **FastAPI** — REST API
-- **BeautifulSoup / aiohttp** — Web scraping
-- **Hunter.io** — Company & email discovery
-- **LLM (Mistral)** — Cover letter generation
+###  1. Smart Job Discovery & Enrichment
+* **Targeted Scraping**: Integrated with the **Hunter.io API** to find and verify key contact information.
+* **Data Filtering**: Advanced filtering logic to keep only the most relevant leads.
+* **Company Enrichment**: Automatically fetches additional context about companies to give you a competitive edge before applying.
 
-### Structure
+###  2. Dual-Core Dashboard
+* **Lead Explorer**: A dedicated view to manage and analyze newly scraped companies.
+* **Application Tracker**: A separate dashboard to monitor your active applications, follow-ups, and Gmail interactions.
 
-```
-SmartApplyBack/
-├── app/
-│   ├── main.py               # Entry point
-│   ├── routers/
-│   │   ├── scraping.py       # Scraping endpoints
-│   │   ├── filter.py         # Filter endpoints
-│   │   └── enrich.py         # Enrich endpoints
-│   ├── models/
-│   │   ├── scraping.py
-│   │   ├── filter.py
-│   │   └── enrich.py
-│   └── services/
-│       ├── scraping/         # Hunter.io scraping logic
-│       ├── filters/          # Pre-filter + deep filter pipeline
-│       └── enrich/           # Company enrichment logic
-└── results/                  # JSON output files
-```
+###  3. Privacy-First AI Generation
+* **Context-Aware Drafting**: Automatically generates tailored cover letters by analyzing the specific context of the company and the job role.
+* **100% Local Inference**: Powered by **Ollama**, ensuring that your professional data and CVs never leave your local machine.
 
-### API Documentation
-
-| URL | Description |
-|-----|-------------|
-| `http://localhost:8000/docs` | Swagger UI — interactive docs |
-| `http://localhost:8000/redoc` | ReDoc — reference docs |
+###  4. Seamless Developer Experience
+* **Containerized Stack**: Fully Dockerized environment (Angular + FastAPI) for a "one-command" setup.
 
 
----
+## Project Documentation
 
-##  Frontend — SmartApplyFront
+To make the setup and contribution process easier, please refer to the following documents:
 
-Built with **Angular 17+**, the frontend provides a dashboard to control the pipeline and visualize results.
+| Document | Description |
+| :--- | :--- |
+|  **[SETUP.md](docs/SETUP.md)** | Step-by-step installation with Docker & Ollama. |
+|  **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** | Git Flow, Commit conventions, and coding standards. |
+|  **[SECURITY.md](docs/SECURITY.md)** | Privacy policy and local data management. |
+|  **[ROADMAP.md](docs/ROADMAP.md)** | Upcoming features and project vision. |
+|  **[GUIDE_OLLAMA.md](docs/GUIDE_OLLAMA.md)** | Deep dive into local AI configuration. |
+| **[SECURITY.md](docs/SECURITY.md)** | Privacy policy and local data management. |
+|  **[LICENSE.md](docs/LICENSE.md)** | MIT License and legal protections. |
 
-### Stack
-- **Angular 17+** — Frontend framework
-- **TypeScript** — Language
-- **SCSS** — Styling
 
-### Structure
 
-```
-SmartApplyFront/
-└── src/
-    └── app/
-        ├── core/services/        # API service calls
-        ├── models/               # TypeScript interfaces
-        ├── pages/dashboard/      # Main dashboard page
-        └── shared/components/    # Reusable components
-```
----
 
-##  Cover Letter Generation
-
-SmartApply uses a **LLM** (Large Language Model) to automatically generate personalized cover letters based on enriched company data — tech stack, job offers, company size, and recruiting status.
-
----
-
-##  License
-
-MIT
