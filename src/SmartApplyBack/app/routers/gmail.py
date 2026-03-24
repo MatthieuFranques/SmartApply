@@ -6,6 +6,7 @@ from app.services.gmail.gmail import (
     get_auth_url,
     save_token_from_code,
     fetch_emails_by_label,
+    get_credentials
 )
 from app.models.gmail import GmailMessage
 
@@ -72,7 +73,6 @@ def get_messages(label: str = Query(default=GMAIL_LABEL)):
 @router.get("/status", summary="Vérifier si le token est valide")
 def gmail_status():
     """Vérifie si un token Gmail valide est présent."""
-    from app.services.gmail import get_credentials
     creds = get_credentials()
     if creds:
         return {"authenticated": True, "message": "Token valide ✅"}
