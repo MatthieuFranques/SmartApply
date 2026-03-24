@@ -27,10 +27,6 @@
   <ng-container *ngIf="activeTab === 'companies'">
 
     <div class="controls">
-      <div class="city-input">
-        <label>VILLE</label>
-        <input [(ngModel)]="city" placeholder="Toulouse" />
-      </div>
       <div class="divider"></div>
       <button class="btn btn-scrape" (click)="onScrape()"    [disabled]="loading">Scraper</button>
       <button class="btn btn-filter" (click)="onFilter()"    [disabled]="loading">Filtrer</button>
@@ -106,7 +102,7 @@
                   {{ c.is_recruiting ? 'Oui' : 'Non' }}
                 </span>
               </td>
-              <td>{{ c.job_offers?.length || '—' }}</td>
+              <td>{{ c.job_offers.length || '—' }}</td>
               <td>
                 <a *ngIf="c.contact_form?.url" [href]="c.contact_form.url" target="_blank">🔗</a>
                 <span *ngIf="!c.contact_form?.url">—</span>

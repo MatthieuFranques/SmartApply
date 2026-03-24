@@ -152,25 +152,35 @@
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 
   &.btn-scrape {
-    background: transparent;
-    border-color: var(--accent2);
-    color: var(--accent2);
-    &:hover:not(:disabled) { background: var(--accent2); color: #fff; }
+  font-family: 'Space Mono', monospace;
+  padding: 8px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  color: var(--accent); cursor: pointer; font-size: 11px;
+  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
+  &:hover:not(:disabled) { border-color: var(--accent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 
   &.btn-filter {
-    background: transparent;
-    border-color: var(--warning);
-    color: var(--warning);
-    &:hover:not(:disabled) { background: var(--warning); color: #000; }
+    font-family: 'Space Mono', monospace;
+  padding: 8px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  color: var(--accent); cursor: pointer; font-size: 11px;
+  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
+  &:hover:not(:disabled) { border-color: var(--accent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 
   &.btn-enrich {
     background: transparent;
-    border-color: var(--accent);
-    color: var(--accent);
-    &:hover:not(:disabled) { background: var(--accent); color: #000; }
-  }
+     font-family: 'Space Mono', monospace;
+  padding: 8px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface);
+  color: var(--accent); cursor: pointer; font-size: 11px;
+  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
+  &:hover:not(:disabled) { border-color: var(--accent); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
 }
 
 // ─── Status bar ──────────────────────────────────────────────
