@@ -378,3 +378,33 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+
+.helper-btn {
+  background: rgba(255, 255, 255, 0.1); /* Fond légèrement transparent */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%; /* Bouton rond */
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  font-size: 16px;
+  margin-left: 15px;
+}
+
+.helper-btn:hover {
+  background: #00d2b4; /* Ta couleur Sarcelle "SmartApply" */
+  border-color: #00d2b4;
+  box-shadow: 0 0 10px rgba(0, 210, 180, 0.5);
+  transform: scale(1.1);
+}
+
+.helper-btn .icon {
+  line-height: 1;
+}
