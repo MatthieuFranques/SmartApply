@@ -36,7 +36,7 @@ jobs:
       - name: Run tests with coverage
         working-directory: ./src/SmartApplyBack
         env:
-          PYTHONPATH: ./src/SmartApplyBack
+          PYTHONPATH: .
         run: |
           pytest \
             --cov=. \
