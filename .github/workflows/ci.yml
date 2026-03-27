@@ -27,7 +27,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        working-directory: ./src/SmartApplyBack
+        working-directory: ./src/SmartApplyBack 
         run: pip install -r requirements.txt
 
       - name: Install test dependencies
@@ -35,6 +35,8 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: ./src/SmartApplyBack
+        env:
+          PYTHONPATH: ./src/SmartApplyBack
         run: |
           pytest \
             --cov=. \
