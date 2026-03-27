@@ -110,19 +110,21 @@ def _extract_entreprise(sender: str, subject: str, body: str) -> str:
     nom = ""
 
     # Hellowork : "l'offre de Acme –"
-    m = re.search(r"l'offre de (.+?)\s*[-–]\s*", subject, re.I)
+    m = re.search(r"l'offre de ([^-–\n\r]{1,100}?)\s*[-–]\s*", subject, re.I)
     if m:
         nom = m.group(1).strip()
 
     # "chez NomEntreprise"
     if not nom:
-        m = re.search(r"chez\s+([A-ZÀ-Ÿa-zà-ÿ0-9\s&.\-]+?)(?:\s*[-–(]|$)", subject, re.I)
+        m = re.search(r"chez\s+([A-ZÀ-Ÿa-zà-ÿ0-9&.\-]{1,80})(?:\s*[-–(]|$)", subject, re.I)
+
         if m:
             nom = m.group(1).strip()
 
     # Nom affiché de l'expéditeur
     if not nom:
-        m = re.match(r'"?([^"<]+)"?\s*<', sender)
+        m = re.match(r'"?([^"<]{1,100})"?\s*<', sender)
+
         if m:
             name = m.group(1).strip()
             if not re.search(r"linkedin|hellowork|indeed|monster|pôle emploi|apec|welcometothejungle", name, re.I):
@@ -148,7 +150,7 @@ def _extract_poste(subject: str, body: str) -> str:
         re.compile(r"(?:poste|offre)\s*[:\-–]\s*([^\n\r,|]{5,60})", re.I),
         re.compile(r"candidature\s+(?:au?|pour le?|pour la?|au poste de?)\s+([^\n\r,|]{5,60})", re.I),
         re.compile(r"(?:pour le poste de?|au poste de?)\s+([^\n\r,|]{5,60})", re.I),
-        re.compile(r"l'offre de .+?\s*[-–]\s*([^\n\r(]{5,60})", re.I),
+        re.compile(r"l'offre de [^-–\n\r]{0,100}?\s*[-–]\s*([^\n\r(]{5,60})", re.I),
         re.compile(r"poste de\s+([^\n\r,|]{5,60}?)(?:\s+chez|\s+[-–]|$)", re.I),
     ]
     for p in patterns:
@@ -178,7 +180,7 @@ def _extract_ville(body: str, subject: str) -> str:
     text = body + " " + subject
     patterns = [
         re.compile(rf"\b({_VILLES_FR})\b", re.I),
-        re.compile(r"(?:lieu|localisation|ville|site|basé[e]? à|poste basé|localis[ée] à)\s*[:\-–]?\s*([A-ZÀ-Ÿ][a-zà-ÿ\-]+(?:\s[A-ZÀ-Ÿ][a-zà-ÿ\-]+)?)", re.I),
+        re.compile(r"(?:lieu|localisation|ville|site|basé[e]? à|poste basé|localis[ée] à)\s*[:\-–]?\s*([A-ZÀ-Ÿ][a-zà-ÿ\-]{1,30}(?:\s[A-ZÀ-Ÿ][a-zà-ÿ\-]{1,30})?)", re.I),
         re.compile(r"\b([A-ZÀ-Ÿ][a-zà-ÿ\-]+)\s*\((?:0[1-9]|[1-8]\d|9[0-5])\)"),
     ]
     for p in patterns:

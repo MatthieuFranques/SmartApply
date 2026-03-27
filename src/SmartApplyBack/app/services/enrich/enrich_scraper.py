@@ -281,8 +281,8 @@ def extract_contact_form(soup: BeautifulSoup, url: str) -> ContactForm:
 
     # Cherche un email direct dans la page
     text = soup.get_text()
-    email_match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text)
-    if email_match:
+    email_match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,10}", text)
+    if email_match: 
         form.email_found = email_match.group(0)
 
     # Analyse le formulaire HTML
