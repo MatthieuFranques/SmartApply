@@ -180,7 +180,7 @@ def _extract_ville(body: str, subject: str) -> str:
     text = body + " " + subject
     patterns = [
         re.compile(rf"\b({_VILLES_FR})\b", re.I),
-        re.compile(r"(?:lieu|localisation|ville|site|basé[e]? à|poste basé|localis[ée] à)\s*[:\-–]?\s*([A-ZÀ-Ÿ][a-zà-ÿ\-]{1,30}(?:\s[A-ZÀ-Ÿ][a-zà-ÿ\-]{1,30})?)", re.I),
+        re.compile(r"(?:lieu|localisation|ville|site|basé[e]? à|poste basé|localis[ée] à)[\s:\-–]{0,3}([A-ZÀ-Ÿ][a-zà-ÿ\-]{1,30}(?:\s[A-ZÀ-Ÿ][a-zà-ÿ\-]{1,30})?)", re.I),
         re.compile(r"\b([A-ZÀ-Ÿ][a-zà-ÿ\-]+)\s*\((?:0[1-9]|[1-8]\d|9[0-5])\)"),
     ]
     for p in patterns:
