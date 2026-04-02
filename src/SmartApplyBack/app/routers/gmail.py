@@ -1,79 +1,75 @@
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi.responses import RedirectResponse, JSONResponse
 import os
 
-from app.services.gmail.gmail import (
-    get_auth_url,
-    save_token_from_code,
-    fetch_emails_by_label,
-    get_credentials
-)
+from app.services.gmail.gmail import get_auth_url, exchange_code_for_user, fetch_emails_by_label
+from app.services.auth.jwt_handler import create_jwt
+from app.services.auth.dependency import get_current_user
+from app.repositories.user_repository import UserRepository
 from app.models.gmail import GmailMessage
+from app.models.user import User
 
 router = APIRouter(prefix="/gmail", tags=["Gmail"])
 
-GMAIL_LABEL = os.getenv("GMAIL_LABEL", "Candidatures")
 
-
-# ── Étape 1 : rediriger vers Google pour autorisation ────────
-
-@router.get("/auth", summary="Lancer l'authentification Gmail")
+@router.get("/auth")
 def gmail_auth():
-    """
-    Redirige vers la page de consentement Google.
-    À appeler une seule fois pour générer le token.json.
-    """
-    auth_url = get_auth_url()
-    return RedirectResponse(url=auth_url)
+    return RedirectResponse(url=get_auth_url())
 
 
-# ── Étape 2 : callback Google après consentement ─────────────
-
-@router.get("/callback", summary="Callback OAuth Google")
+@router.get("/callback")
 def gmail_callback(code: str = Query(...)):
-    """
-    Google redirige ici après consentement.
-    Sauvegarde le token dans token.json automatiquement.
-    """
     try:
-        save_token_from_code(code)
-        return {"message": "Authentification réussie. Token sauvegardé."}
+        user_info, tokens = exchange_code_for_user(code)
+
+        user = UserRepository().upsert(
+            google_id     = user_info["sub"],
+            email         = user_info["email"],
+            name          = user_info["name"],
+            picture       = user_info.get("picture", ""),
+            access_token  = tokens["access_token"],
+            refresh_token = tokens["refresh_token"],
+            token_expiry  = tokens["expiry"],
+            scopes        = tokens["scopes"],
+        )
+
+        jwt_token = create_jwt(user.google_id)
+        response  = JSONResponse({"message": "Authentifié ✅", "email": user.email})
+        response.set_cookie(
+            key      = "session",
+            value    = jwt_token,
+            httponly = True,
+            samesite = "lax",
+            max_age  = 7 * 24 * 3600,   # 7 jours
+        )
+        return response
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ── Récupération des mails ────────────────────────────────────
-
-@router.get(
-    "/messages",
-    response_model=list[GmailMessage],
-    summary="Récupérer les mails d'un libellé"
-)
-def get_messages(label: str = Query(default=GMAIL_LABEL)):
-    """
-    Retourne tous les mails du libellé Gmail spécifié au format JSON.
-    Utilise le libellé défini dans .env par défaut.
-    """
+@router.get("/messages", response_model=list[GmailMessage])
+def get_messages(
+    label: str = Query(default=os.getenv("GMAIL_LABEL", "Candidatures")),
+    current_user: User = Depends(get_current_user),    # ← protégé
+):
     try:
-        messages = fetch_emails_by_label(label)
-        return messages
-    except PermissionError as e:
-        raise HTTPException(
-            status_code=401,
-            detail=str(e) + " → Va sur http://localhost:8000/gmail/auth"
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        return fetch_emails_by_label(label, current_user.access_token)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ── Statut auth ───────────────────────────────────────────────
+@router.get("/status")
+def gmail_status(current_user: User = Depends(get_current_user)):
+    return {
+        "authenticated": True,
+        "email":         current_user.email,
+        "name":          current_user.name,
+    }
 
-@router.get("/status", summary="Vérifier si le token est valide")
-def gmail_status():
-    """Vérifie si un token Gmail valide est présent."""
-    creds = get_credentials()
-    if creds:
-        return {"authenticated": True, "message": "Token valide ✅"}
-    return {"authenticated": False, "message": "Non authentifié. Lance /gmail/auth"}
+
+@router.post("/logout")
+def logout():
+    response = JSONResponse({"message": "Déconnecté"})
+    response.delete_cookie("session")
+    return response
