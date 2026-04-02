@@ -1,44 +1,68 @@
-# app/routers/enrich.py
-
-from urllib import request
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
-import os
-import json
 
 from app.models.enrich import EnrichRequest, EnrichResponse, EnrichSummary
-from app.services.enrich.enrich_main import run_enrich, find_deep_results, build_output_file
+from app.models.user import User
+from app.services.enrich.enrich_main import run_enrich
+from app.repositories.job_repository import JobRepository
+from app.services.auth.dependency import get_current_user
 
 router = APIRouter(prefix="/enrich", tags=["Enrich"])
 
 
 @router.post("/start", response_model=EnrichResponse)
-def start_enrich(request: EnrichRequest):
-    """
-    Lance l'enrichissement depuis le deep_results auto-détecté.
-    input_file optionnel — si absent, prend le deep_results le plus récent.
-    """
-    print(f"\n POST /enrich/start")
+def start_enrich(
+    request: EnrichRequest,
+    current_user: User = Depends(get_current_user),
+):
+    repo = JobRepository()
 
-    try:
-        input_file = request.input_file or find_deep_results(request.base_dir or "results")
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    # Récupère les jobs deep depuis la DB au lieu de lire deep_results.json
+    jobs = repo.find_by_stage(current_user.google_id, stage="deep")
+    if not jobs:
+        raise HTTPException(
+            status_code=404,
+            detail="Aucun job à enrichir — lancez d'abord /filter/start"
+        )
 
-    if not os.path.exists(input_file):
-        raise HTTPException(status_code=404, detail=f"Fichier introuvable : {input_file}")
+    enriched_jobs = run_enrich(
+        jobs  = [job.model_dump() for job in jobs],   # données, pas fichier
+        limit = request.limit,
+    )
 
-    output_file = request.output_file or build_output_file(request.base_dir or "results")
-    summary = run_enrich(input_file, output_file, request.limit)
+    # Mise à jour en DB avec les données enrichies
+    for job in enriched_jobs:
+        repo.update_stage(
+            user_id      = current_user.google_id,
+            domaine      = job["domaine"],
+            stage        = "enriched",
+            extra_fields = {
+                "description":       job.get("description"),
+                "about_text":        job.get("about_text"),
+                "tech_keywords":     job.get("tech_keywords", []),
+                "job_keywords":      job.get("job_keywords", []),
+                "job_titles_found":  job.get("job_titles_found", []),
+                "key_phrases":       job.get("key_phrases", []),
+                "company_size_hint": job.get("company_size_hint"),
+                "is_recruiting":     job.get("is_recruiting"),
+                "job_offers":        job.get("job_offers", []),
+                "contact_form":      job.get("contact_form"),
+                "scrape_status":     job.get("scrape_status"),
+                "scrape_error":      job.get("scrape_error"),
+            },
+        )
 
-    return EnrichResponse(message="Enrichissement terminé ", summary=summary)
+    return EnrichResponse(
+        message="Enrichissement terminé ✅",
+        summary=EnrichSummary(enriched=len(enriched_jobs)),
+    )
 
 
 @router.get("/results", response_model=List[dict])
-def get_enrich_results(output_dir: str = "./results"):
-    filepath = os.path.join(output_dir, "enriched.json")
-    if not os.path.exists(filepath):
+def get_enrich_results(
+    current_user: User = Depends(get_current_user),
+):
+    jobs = JobRepository().find_by_stage(current_user.google_id, stage="enriched")
+    if not jobs:
         raise HTTPException(status_code=404, detail="Aucun résultat disponible")
-    with open(filepath, encoding="utf-8") as f:
-        return json.load(f)
+    return [job.model_dump(by_alias=False) for job in jobs]

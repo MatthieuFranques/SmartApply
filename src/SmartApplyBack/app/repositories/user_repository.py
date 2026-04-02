@@ -1,19 +1,15 @@
 from datetime import datetime
 from typing import Optional
-from pymongo import MongoClient, ReturnDocument
+from pymongo import ReturnDocument
 from pymongo.collection import Collection
-import os
 
 from app.models.user import User
+from app.db.mongo import get_db
 
 
 class UserRepository:
     def __init__(self):
-        client = MongoClient(os.getenv("MONGODB_URI"))
-        db = client[os.getenv("MONGODB_DB", "jobpipeline")]
-        self.col: Collection = db["users"]
-        # Index unique sur google_id — une seule fois au démarrage
-        self.col.create_index("google_id", unique=True)
+        self.col: Collection = get_db()["users"]
 
     def upsert(
         self,

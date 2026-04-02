@@ -1,5 +1,5 @@
-from fastapi import Depends, HTTPException, Cookie
 from typing import Optional
+from fastapi import Depends, HTTPException, Cookie
 
 from app.services.auth.jwt_handler import decode_jwt
 from app.repositories.user_repository import UserRepository
@@ -7,10 +7,6 @@ from app.models.user import User
 
 
 async def get_current_user(session: Optional[str] = Cookie(None)) -> User:
-    """
-    Dependency injectable partout.
-    Lit le cookie 'session' → décode JWT → retourne User depuis MongoDB.
-    """
     if not session:
         raise HTTPException(
             status_code=401,

@@ -1,9 +1,10 @@
 import os
+from typing import Optional
 from datetime import datetime, timedelta
-from jose import jwt, JWTError    # pip install python-jose[cryptography]
+from jose import jwt, JWTError
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")   # à mettre dans .env !
-ALGORITHM  = "HS256"
+SECRET_KEY  = os.getenv("JWT_SECRET_KEY")
+ALGORITHM   = "HS256"
 EXPIRE_DAYS = 7
 
 
@@ -18,6 +19,6 @@ def create_jwt(google_id: str) -> str:
 def decode_jwt(token: str) -> Optional[str]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")   # google_id
+        return payload.get("sub")
     except JWTError:
         return None

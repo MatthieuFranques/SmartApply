@@ -25,3 +25,6 @@ ollama
 
 # TESTING
 pytest
+
+
+python-jose[cryptography]==3.3.0
