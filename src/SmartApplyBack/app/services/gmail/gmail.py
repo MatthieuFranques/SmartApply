@@ -53,48 +53,63 @@ def _make_flow() -> Flow:
 # ── Auth helpers ──────────────────────────────────────────────
 
 def get_auth_url() -> str:
-    """Génère l'URL d'autorisation Google."""
-    flow = _make_flow()
-    auth_url, _ = flow.authorization_url(
-        access_type="offline",
-        include_granted_scopes="true",
-        prompt="consent",
-    )
-    return auth_url
+    """Génère l'URL d'autorisation Google standard."""
+    import urllib.parse
+    
+    params = {
+        "client_id": CLIENT_ID.strip(), # .strip() pour éviter un espace invisible
+        "redirect_uri": "http://localhost:8000/gmail/callback",
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "access_type": "offline",
+        "include_granted_scopes": "true",
+        "prompt": "consent",
+    }
+    
+    url_base = "https://accounts.google.com/o/oauth2/v2/auth"
+    # Utilise urlencode pour être sûr que les caractères (/:) sont bien transformés
+    query_string = urllib.parse.urlencode(params)
+    
+    return f"{url_base}?{query_string}"
 
 
 def exchange_code_for_user(code: str) -> tuple[dict, dict]:
-    """
-    Échange le code OAuth contre les tokens et récupère les infos user.
-    Remplace save_token_from_code() — ne touche plus au disque.
+    """Échange le code contre des tokens et récupère les infos utilisateur."""
+    # 1. Échange du code contre Token
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": "http://localhost:8000/gmail/callback",
+        "grant_type": "authorization_code",
+    }
+    
+    token_resp = http_requests.post(token_url, data=data, timeout=10)
+    token_resp.raise_for_status()
+    token_data = token_resp.json()
 
-    Retourne :
-        user_info : { sub, email, name, picture }
-        tokens    : { access_token, refresh_token, expiry, scopes }
-    """
-    flow = _make_flow()
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-
-    # Récupération des infos utilisateur via Google userinfo
-    resp = http_requests.get(
+    # 2. Récupération des infos utilisateur
+    user_info_resp = http_requests.get(
         "https://www.googleapis.com/oauth2/v3/userinfo",
-        headers={"Authorization": f"Bearer {creds.token}"},
+        headers={"Authorization": f"Bearer {token_data['access_token']}"},
         timeout=10,
     )
-    resp.raise_for_status()
-    user_info = resp.json()
-    # user_info = { "sub": "...", "email": "...", "name": "...", "picture": "..." }
+    user_info_resp.raise_for_status()
+    user_info = user_info_resp.json()
+
+    # 3. Formatage des tokens pour la DB
+    from datetime import datetime, timedelta
+    expiry_date = datetime.utcnow() + timedelta(seconds=token_data.get("expires_in", 3600))
 
     tokens = {
-        "access_token":  creds.token,
-        "refresh_token": creds.refresh_token,
-        "expiry":        creds.expiry,          # datetime | None
-        "scopes":        list(creds.scopes or []),
+        "access_token":  token_data["access_token"],
+        "refresh_token": token_data.get("refresh_token"), # Sera présent grâce au prompt=consent
+        "expiry":        expiry_date,
+        "scopes":        token_data.get("scope", "").split(),
     }
 
     return user_info, tokens
-
 
 def refresh_user_token(refresh_token: str) -> dict:
     """

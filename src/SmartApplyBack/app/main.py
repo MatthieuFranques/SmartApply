@@ -18,6 +18,7 @@ app.add_middleware(
     allow_origins=["http://localhost:4200"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 app.include_router(scraping.router)

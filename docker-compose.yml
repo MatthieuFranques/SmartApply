@@ -19,6 +19,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   # Backend : 
 
@@ -36,20 +37,20 @@ services:
         limits:
           memory: 1G
 
-  frontend:
-    build: ./src/SmartApplyFront
-    container_name: smartapply-ui
-    ports:
-      - "4200:4200"
-    depends_on:
-      - backend
-    volumes:
-      - ./src/SmartApplyFront:/app #Hot-Reload
-      - /app/node_modules
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
+  # frontend:
+  #   build: ./src/SmartApplyFront
+  #   container_name: smartapply-ui
+  #   ports:
+  #     - "4200:4200"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./src/SmartApplyFront:/app #Hot-Reload
+  #     - /app/node_modules
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1.5G
 
 volumes:
   mongo_data:
