@@ -9,6 +9,7 @@ python-dotenv
 beautifulsoup4
 
 # DATABASE (NoSQL - MongoDB)
+pymongo
 motor
 pydantic
 pydantic-settings
