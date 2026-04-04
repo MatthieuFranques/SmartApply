@@ -116,14 +116,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let c of filteredCompanies"
-                  [class.row-error]="c.scrape_status === 'error'"
-                  (click)="openDetail(c)"
-                  style="cursor: pointer;">
-                <td class="td-truncate" [title]="c.nom">{{ c.nom }}</td>
-                <td><a [href]="'https://' + c.domaine" target="_blank">{{ c.domaine }}</a></td>
-                <td>{{ c.ville }}</td>
-                <td>{{ c.secteur }}</td>
+              <tr *ngFor="let c of filteredCompanies" (click)="openDetail(c)">
+                  <tr *ngFor="let c of companies">
+                <td class="td-truncate" [title]="c.nom">{{ c.nom || '—' }}</td>
+                <td><a [href]="'https://' + c.domaine" target="_blank">{{ c.domaine || '—' }}</a></td>
+                <td>{{ c.ville || '—' }}</td>
+                <td>{{ c.secteur  || '—' }}</td>
                 <td>{{ c.company_size_hint || '—' }}</td>
                 <td>
                   <span [class]="'badge ' + (c.is_recruiting ? 'green' : 'grey')">
@@ -132,8 +130,10 @@
                 </td>
                 <td>{{ c.job_offers?.length || '—' }}</td>
                 <td>
-                  <a *ngIf="c.contact_form?.url" [href]="c.contact_form.url" target="_blank">🔗</a>
-                  <span *ngIf="!c.contact_form?.url">—</span>
+                  <ng-container *ngIf="c.contact_form?.url; else noContact">
+                    <a [href]="c.contact_form?.url" target="_blank">🔗</a>
+                  </ng-container>
+                  <ng-template #noContact>—</ng-template>
                 </td>
               </tr>
             </tbody>

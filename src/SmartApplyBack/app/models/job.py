@@ -1,21 +1,22 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Any, List # Ajout de Any et List
+from typing import Optional, Any, List 
 from datetime import datetime
 
 class ContactForm(BaseModel):
     url: str = ""
     has_file_upload: bool = False
-    # CHANGEMENT ICI : On passe en list[dict] ou list[Any] 
-    # car le scraper renvoie des objets de champs de formulaire
     fields: list[dict] = [] 
     email_found: str = ""
 
 class Job(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
     user_id: str
-
-    # ... (tes autres champs restent identiques) ...
-
+    stage: str = "scraping"  
+    status: str = "active"    
+    nom: str = ""
+    domaine: str = ""
+    ville: str = ""
+    secteur: str = ""
     # ── Enriched stage ──
     description: Optional[str] = None
     about_text: Optional[str] = None
@@ -26,7 +27,7 @@ class Job(BaseModel):
     company_size_hint: Optional[str] = None
     founded_hint: Optional[str] = None
     is_recruiting: Optional[bool] = None
-    job_offers: list[dict] = [] # Déjà en list[dict], c'est parfait
+    job_offers: list[dict] = [] 
     contact_form: Optional[ContactForm] = None
     scrape_status: Optional[str] = None
     scrape_error: Optional[str] = None

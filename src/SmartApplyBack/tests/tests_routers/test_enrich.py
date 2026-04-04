@@ -27,21 +27,21 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 
 # 3. Mock du Repository
 class MockJobRepository:
-    # Dans tests/tests_routers/test_enrich.py
     def find_by_stage(self, user_id, stage):
         if stage == "enriched":
             return [
                 Job(
-                    user_id="google_123",  # Champ manquant
+                    _id="69d13952bfd0ece28a4f2f7a", 
+                    user_id="google_123",
                     nom="Test Corp",
                     domaine="test.com",
-                    secteur="Informatique",  # Champ manquant
-                    stage="enriched",
-                    ville="Toulouse"
+                    secteur="Informatique",
+                    ville="Toulouse",
+                    stage="enriched", 
+                    status="active"    
                 )
             ]
         return []
-
 # --- TESTS ---
 
 def test_get_enriched_results(monkeypatch):

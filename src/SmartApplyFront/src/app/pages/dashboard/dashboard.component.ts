@@ -88,15 +88,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // ── Stats calculées ───────────────────────────────────────
 
   get filteredCompanies(): Company[] {
-    if (this.selectedCity === 'all') return this.companies;
-    return this.companies.filter(c =>
-      c.ville?.toLowerCase() === this.selectedCity.toLowerCase()
-    );
+  // Si on veut tout, on s'arrête là
+  if (!this.selectedCity || this.selectedCity === 'all') {
+    return this.companies;
   }
+  
+  // Filtrage sécurisé contre les valeurs null/undefined
+  return this.companies.filter(c => {
+    if (!c.ville) return false;
+    return c.ville.toLowerCase().trim() === this.selectedCity.toLowerCase().trim();
+  });
+}
 
-  get recruiting():  number { return this.filteredCompanies.filter(c => c.is_recruiting).length; }
-  get withOffers():  number { return this.filteredCompanies.filter(c => c.job_offers?.length).length; }
-  get withContact(): number { return this.filteredCompanies.filter(c => c.contact_form?.url).length; }
+get recruiting(): number { 
+  if (!this.filteredCompanies.length) return 0;
+  return this.filteredCompanies.filter(c => c.is_recruiting === true).length; 
+}
+
+get withOffers(): number { 
+  if (!this.filteredCompanies.length) return 0;
+  return this.filteredCompanies.filter(c => c.job_offers && c.job_offers.length > 0).length; 
+}
+
+get withContact(): number { 
+  if (!this.filteredCompanies.length) return 0;
+  return this.filteredCompanies.filter(c => !!c.contact_form?.url).length; 
+}
 
   filterByCity(city: string): void { this.selectedCity = city; }
 
@@ -121,19 +138,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // ── Chargement des résultats depuis la DB ─────────────────
   loadResults(): void {
-    this.loading = true;
-    this.http.get<Company[]>(
-      `${this.api}/enrich/results`,
-      { withCredentials: true },
-    ).subscribe({
-      next: (data) => {
-        this.companies       = data;
-        this.availableCities = [...new Set(data.map(c => c.ville).filter(Boolean))];
-        this.loading         = false;
-      },
-      error: (err) => this.handleError(err, 'chargement'),
-    });
-  }
+  this.loading = true;
+  this.statusMessage = 'Chargement des données...';
+
+  this.http.get<Company[]>(
+    `${this.api}/enrich/results`,
+    { withCredentials: true }
+  ).subscribe({
+    next: (data) => {
+  this.companies = [...data]; // Force la nouvelle référence
+  this.availableCities = [...new Set(data.map(c => c.ville).filter(Boolean))];
+  this.loading = false;
+},
+    error: (err) => {
+      this.loading = false;
+      this.handleError(err, 'chargement');
+    }
+  });
+}
 
   // ── Gestion erreurs centralisée ───────────────────────────
   private handleError(err: any, context: string): void {
