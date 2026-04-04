@@ -46,3 +46,19 @@ def filter_stream(
             "Access-Control-Allow-Origin": "http://localhost:4200",
         },
     )
+
+@router.get("/results")
+def get_filtered_results(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Récupère la liste des entreprises ayant passé le filtrage (stage 'deep').
+    Utile pour voir les résultats intermédiaires avant l'enrichissement final.
+    """
+    print(f"DEBUG: Récupération des résultats filtrés pour {current_user.email}")
+    repo = JobRepository()
+    
+    # On cherche les jobs qui ont le stage "deep" (retenus après filtrage)
+    filtered_jobs = repo.find_by_stage(current_user.google_id, "deep")
+    
+    return [job.model_dump() for job in filtered_jobs]

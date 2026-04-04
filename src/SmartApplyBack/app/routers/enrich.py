@@ -39,3 +39,19 @@ def enrich_stream(
             "Access-Control-Allow-Origin": "http://localhost:4200",
         },
     )
+
+@router.get("/results")
+def get_enriched_results(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Récupère la liste finale des entreprises enrichies pour l'utilisateur.
+    C'est cette route que le Dashboard appellera pour remplir le tableau.
+    """
+    print("DEBUG: Récupération des résultats enrichis")
+    repo = JobRepository()
+    # On cherche les jobs qui ont atteint l'étape finale "enriched"
+    enriched_jobs = repo.find_by_stage(current_user.google_id, "enriched")
+    
+    # On convertit les modèles Pydantic en dictionnaires pour la réponse JSON
+    return [job.model_dump() for job in enriched_jobs]
