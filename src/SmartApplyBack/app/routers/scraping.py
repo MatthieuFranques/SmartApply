@@ -1,44 +1,41 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
-from typing import List
+# app/routers/scraping.py
+import json
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
-from app.services.scraping.scraping_main import run_scraping
-from app.models.scraping import ScrapingRequest, ScrapingResponse
-from app.models.user import User
+from app.services.scraping.scraping_main import stream_scraping
+from app.models.scraping import ScrapingRequest
 from app.repositories.job_repository import JobRepository
 from app.services.auth.dependency import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/scraping", tags=["Scraping"])
 
 
-async def _scraping_task(cities: list[str], user_id: str) -> None:
-    """Tâche background : scrape puis sauvegarde en DB."""
-    results = run_scraping(cities)          # retourne list[dict] au lieu d'écrire un fichier
-    JobRepository().save_many(results, user_id, stage="scraping")
+def _sse(data: dict) -> str:
+    """Formate un dict en événement SSE."""
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-@router.post("/start", response_model=ScrapingResponse)
-def start_scraping(
-    request: ScrapingRequest,
-    background_tasks: BackgroundTasks,
+@router.get("/stream")
+def scrape_stream(
+    cities: str = "Toulouse",
     current_user: User = Depends(get_current_user),
 ):
-    background_tasks.add_task(
-        _scraping_task,
-        request.cities,
-        current_user.google_id,
-    )
-    return ScrapingResponse(
-        message="Scraping lancé en arrière-plan 🚀",
-        cities=request.cities,
-    )
+    """Stream SSE — envoie chaque entreprise trouvée en temps réel."""
+    cities_list = [c.strip() for c in cities.split(",")]
+    repo = JobRepository()
 
+    def generate():
+        for event in stream_scraping(cities_list, current_user.google_id, repo):
+            yield _sse(event)
 
-@router.get("/results", response_model=List[dict])
-def get_results(
-    current_user: User = Depends(get_current_user),
-):
-    """Retourne les résultats de scraping depuis MongoDB."""
-    jobs = JobRepository().find_by_stage(current_user.google_id, stage="scraping")
-    if not jobs:
-        raise HTTPException(status_code=404, detail="Aucun résultat disponible")
-    return [job.model_dump(by_alias=False) for job in jobs]
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control":               "no-cache",
+            "X-Accel-Buffering":           "no",
+            "Access-Control-Allow-Origin": "http://localhost:4200",
+        },
+    )

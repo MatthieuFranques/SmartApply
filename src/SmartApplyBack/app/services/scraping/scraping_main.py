@@ -2,9 +2,10 @@
 
 import os
 import sys
+from datetime import datetime
 
+# Garde tes imports de path si nécessaire pour scraper
 sys.path.insert(0, os.path.dirname(__file__))
-
 from scraper import scrape_companies
 
 SECTORS = [
@@ -12,52 +13,49 @@ SECTORS = [
     "startup tech", "cybersécurité", "intelligence artificielle",
     "cloud computing", "édition logiciel", "conseil digital",
     "transformation digitale", "fintech", "ESN", "SSII",
-    "software development", "web agency", "tech startup",
-    "digital consulting", "digital transformation",
-    "IT services", "IT consulting", "technology",
 ]
 
-
-def run_scraping(cities: list[str] = ["Toulouse", "Brussels", "Namur"]) -> list[dict]:
+def stream_scraping(cities: list[str], user_id: str, repo):
     """
-    Lance le scraping pour toutes les villes.
-    Retourne la liste complète des entreprises trouvées (dédupliquées).
-    La déduplication inter-sessions est gérée par MongoDB (upsert sur domaine).
+    Générateur pour le flux SSE. 
+    Prend 3 arguments comme appelé dans le routeur.
     """
     seen_domains: set[str] = set()
-    all_companies: list[dict] = []
+    total_found = 0
+    print(f"DEBUG: Lancement du stream pour {user_id} dans {cities}")
+    # 1. Signaler le début au Frontend
+    yield {"type": "phase", "status": "started", "phase": "scraping"}
 
     for city in cities:
-        print(f"\n{'═'*50}")
-        print(f"  Ville : {city}")
-        print(f"{'═'*50}")
-
+        yield {"type": "info", "message": f"Recherche en cours à {city}..."}
+        
         for sector in SECTORS:
-            print(f"\n  Secteur : {sector}")
+            # Appel au script de scraping pur
             results = scrape_companies(sector, [city])
 
             for company in results:
-                if company["domaine"] not in seen_domains:
-                    seen_domains.add(company["domaine"])
-                    all_companies.append(company)
-                    print(f"    → ajouté : {company['domaine']}")
+                domaine = company.get("domaine")
+                
+                if domaine and domaine not in seen_domains:
+                    seen_domains.add(domaine)
+                    total_found += 1
+                    
+                    # 2. Sauvegarde en DB via JobRepository (Utilise save_many avec une liste d'un seul item)
+                    # Ton repo n'a pas de 'save_one', donc on utilise save_many avec [company]
+                    repo.save_many([company], user_id, stage="scraping")
 
-    print(f"\n{'═'*50}")
-    print(f"  TOTAL : {len(all_companies)} entreprises trouvées")
-    print(f"{'═'*50}")
+                    # 3. Envoie l'info au Frontend en temps réel
+                    yield {
+                        "type": "company",
+                        "phase": "scraping",
+                        "company": company.get("nom", domaine),
+                        "domaine": domaine,
+                        "city": city
+                    }
 
-    return all_companies  # ← list[dict], la DB gère la déduplication via upsert
-
-
-if __name__ == "__main__":
-    import argparse
-    from app.repositories.job_repository import JobRepository
-
-    parser = argparse.ArgumentParser(description="Scraping Hunter.io")
-    parser.add_argument("--cities", nargs="+", default=["Toulouse", "Brussels", "Namur"])
-    parser.add_argument("--user-id", required=True, help="google_id de l'utilisateur")
-    args = parser.parse_args()
-
-    results = run_scraping(cities=args.cities)
-    JobRepository().save_many(results, args.user_id, stage="scraping")
-    print(f"  {len(results)} entreprises sauvegardées en DB")
+    # 4. Signaler la fin du process
+    yield {
+        "type": "done",
+        "phase": "scraping",
+        "total": total_found
+    }

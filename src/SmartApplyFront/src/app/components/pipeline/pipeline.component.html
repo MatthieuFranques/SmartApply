@@ -1,0 +1,67 @@
+<div class="pipeline-container">
+
+  <!-- ── Config ── -->
+  <div class="pipeline-config" *ngIf="!running && !done">
+    <div class="config-field">
+      <label>VILLE(S)</label>
+      <input [(ngModel)]="city" placeholder="Toulouse, Brussels..." />
+    </div>
+    <button class="btn-launch" (click)="launch()">
+      ▶ LANCER LE PIPELINE
+    </button>
+  </div>
+
+  <!-- ── Phases ── -->
+  <div class="phases" *ngIf="running || done">
+    <div class="phase-track">
+      <div *ngFor="let p of phases"
+           class="phase-item"
+           [class.active]="phaseStatus[p.key] === 'active'"
+           [class.done]="phaseStatus[p.key] === 'done'"
+           [class.pending]="phaseStatus[p.key] === 'pending'">
+        <div class="phase-icon">
+          <span *ngIf="phaseStatus[p.key] !== 'done'">{{ p.icon }}</span>
+          <span *ngIf="phaseStatus[p.key] === 'done'">✓</span>
+        </div>
+        <div class="phase-info">
+          <span class="phase-label">{{ p.label }}</span>
+          <span class="phase-stats">
+            <span *ngIf="stats[p.key].found">{{ stats[p.key].found }} trouvés</span>
+            <span *ngIf="stats[p.key].kept"> · {{ stats[p.key].kept }} retenus</span>
+            <span *ngIf="stats[p.key].eliminated"> · {{ stats[p.key].eliminated }} éliminés</span>
+            <span *ngIf="stats[p.key].errors"> · {{ stats[p.key].errors }} erreurs</span>
+          </span>
+        </div>
+        <div class="phase-pulse" *ngIf="phaseStatus[p.key] === 'active'"></div>
+      </div>
+    </div>
+
+    <div class="pipeline-actions">
+      <button class="btn-stop"   (click)="stop()"   *ngIf="running">■ STOP</button>
+      <button class="btn-launch" (click)="launch()" *ngIf="done">↺ RELANCER</button>
+    </div>
+  </div>
+
+  <!-- ── Live feed ── -->
+  <div class="feed" *ngIf="events.length > 0">
+    <div class="feed-header">
+      <span>LIVE FEED</span>
+      <div class="dot" *ngIf="running"></div>
+    </div>
+    <div class="feed-list">
+      <div *ngFor="let e of events"
+           class="feed-event"
+           [class.event-found]="e.type === 'company'"
+           [class.event-kept]="e.status === 'kept' || e.status === 'ok'"
+           [class.event-elim]="e.status === 'eliminated'"
+           [class.event-error]="e.status === 'error' || e.type === 'error'"
+           [class.event-done]="e.type === 'pipeline_done'">
+        <span class="event-phase" [style.color]="phaseColor(e.phase || '')">
+          {{ e.phase?.toUpperCase() || '—' }}
+        </span>
+        <span class="event-text">{{ eventLabel(e) }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
