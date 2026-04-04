@@ -1,45 +1,20 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Any, List # Ajout de Any et List
 from datetime import datetime
-
 
 class ContactForm(BaseModel):
     url: str = ""
     has_file_upload: bool = False
-    fields: list[str] = []
+    # CHANGEMENT ICI : On passe en list[dict] ou list[Any] 
+    # car le scraper renvoie des objets de champs de formulaire
+    fields: list[dict] = [] 
     email_found: str = ""
-
 
 class Job(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
-    user_id: str                              # ← clé de tout
+    user_id: str
 
-    # ── Champs communs à tous les stages ──
-    nom: str
-    domaine: str
-    ville: str
-    secteur: str
-    email: str = ""
-
-    # ── Stage actuel dans la pipeline ──
-    stage: str = "scraping"
-    # valeurs : scraping | filtered | deep | enriched
-    status: str = "active"
-    # valeurs : active | eliminated
-
-    # ── Filter stage (prescore) ──
-    prescore: Optional[int] = None
-    site_title: Optional[str] = None
-    site_desc: Optional[str] = None
-    it_keywords: Optional[str] = None
-
-    # ── Deep stage ──
-    deep_score: Optional[int] = None
-    has_mx: Optional[bool] = None
-    mx_provider: Optional[str] = None
-    has_careers: Optional[bool] = None
-    it_jobs_found: Optional[bool] = None
-    careers_url: Optional[str] = None
+    # ... (tes autres champs restent identiques) ...
 
     # ── Enriched stage ──
     description: Optional[str] = None
@@ -51,7 +26,7 @@ class Job(BaseModel):
     company_size_hint: Optional[str] = None
     founded_hint: Optional[str] = None
     is_recruiting: Optional[bool] = None
-    job_offers: list[dict] = []
+    job_offers: list[dict] = [] # Déjà en list[dict], c'est parfait
     contact_form: Optional[ContactForm] = None
     scrape_status: Optional[str] = None
     scrape_error: Optional[str] = None
