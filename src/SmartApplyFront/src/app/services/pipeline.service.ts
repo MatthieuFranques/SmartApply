@@ -1,22 +1,17 @@
-// app/services/pipeline.service.ts
 import { Injectable } from '@angular/core';
 import { concat, Observable } from 'rxjs';
+import { tap } from 'rxjs/operators'; // Indispensable pour le console.log
 
 @Injectable({ providedIn: 'root' })
 export class PipelineService {
-
   private api = 'http://localhost:8000';
 
-
   runFullPipeline(cities: string[]): Observable<any> {
-    // On enchaîne les 3 streams l'un après l'autre
+    // concat attend la complétion de l'Observable précédent pour lancer le suivant
     return concat(
-      this.streamScraping(cities),
-      this.streamFilter(),
-      this.streamEnrich()
-    ).pipe(
-      // Optionnel : on peut ajouter un message final pour déclencher 'pipeline_done' côté front
-      // ou laisser le backend envoyer l'événement via le dernier stream.
+      this.streamScraping(cities).pipe(tap(res => console.log('✅ Scraping event:', res))),
+      this.streamFilter().pipe(tap(res => console.log('✅ Filter event:', res))),
+      this.streamEnrich().pipe(tap(res => console.log('✅ Enrich event:', res)))
     );
   }
 
@@ -38,16 +33,29 @@ export class PipelineService {
 
       es.onmessage = (event) => {
         try {
-          observer.next(JSON.parse(event.data));
-        } catch {}
+          const data = JSON.parse(event.data);
+          observer.next(data);
+
+          // TRÈS IMPORTANT : Le signal de fin envoyé par ton FastAPI
+          // Si tu ne fermes pas ici, le 'concat' attendra indéfiniment.
+          if (data.type === 'done') {
+            console.log(`🔚 Fin de flux détectée pour : ${url}`);
+            es.close();
+            observer.complete();
+          }
+        } catch (err) {
+          console.error("Erreur de parsing JSON sur le flux SSE", err);
+        }
       };
 
       es.onerror = (err) => {
+        // En cas d'erreur réseau ou de fermeture par le serveur
+        console.log("Flux SSE clos ou terminé.");
         es.close();
         observer.complete();
       };
 
-      // Cleanup à l'unsubscribe
+      // Se déclenche si l'utilisateur annule (unsubscribe)
       return () => es.close();
     });
   }
