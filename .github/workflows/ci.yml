@@ -77,7 +77,7 @@ jobs:
 
         - name: Run SonarCloud scan
           # Utilisation du SHA fixe pour la sécurité (correspond à v3.1.0)
-          uses: SonarSource/sonarcloud-github-action@e830e98032c5890983ef99f18b32607f2a1b9136
+          uses: SonarSource/sonarcloud-github-action@02efed30739fb57e3610b85d0d6d37389a8137e3
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
