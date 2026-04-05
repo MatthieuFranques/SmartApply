@@ -1,5 +1,6 @@
 <div class="applications-container">
 
+  <!-- Header -->
   <div class="applications-header">
     <div class="header-left">
       <h2>MES CANDIDATURES</h2>
@@ -8,72 +9,74 @@
       </span>
     </div>
     <div class="header-actions">
-      <button class="btn-reset" (click)="onFullReset()" [disabled]="syncing || loading">↺ RESET</button>
-      <button class="btn-refresh" (click)="onRefresh()" [disabled]="syncing || loading">
+      <button class="btn-reset"    (click)="onFullReset()" [disabled]="syncing || loading">↺ RESET</button>
+      <button class="btn-refresh"  (click)="onRefresh()"   [disabled]="syncing || loading">
         {{ syncing ? 'SYNC...' : 'RAFRAÎCHIR' }}
       </button>
     </div>
   </div>
 
-  <div class="stats" *ngIf="candidatures.length">
-    <div class="stat">
-      <span class="stat-value">{{ candidatures.length }}</span>
-      <span class="stat-label">Total</span>
-    </div>
-    <div class="stat">
-      <span class="stat-value stat-entretien">{{ countByStatut('Entretien') }}</span>
-      <span class="stat-label">Entretiens</span>
-    </div>
-    <div class="stat">
-      <span class="stat-value stat-attente">{{ countByStatut('En attente') }}</span>
-      <span class="stat-label">En attente</span>
-    </div>
-    <div class="stat">
-      <span class="stat-value stat-refuse">{{ countByStatut('Refusé') }}</span>
-      <span class="stat-label">Refusés</span>
-    </div>
-  </div>
+  <!-- Stats — même composant que le dashboard -->
+  <app-stats-bar *ngIf="candidatures.length" [stats]="statItems"></app-stats-bar>
 
+  <!-- Filtres -->
   <div class="filter-bar">
-    <button *ngFor="let s of statuts" class="filter-btn" 
-            [class.active]="activeStatut === s" (click)="onFilterChange(s)">
+    <button *ngFor="let s of statuts"
+            class="filter-btn"
+            [class.active]="activeStatut === s"
+            (click)="onFilterChange(s)">
       {{ s.toUpperCase() }} ({{ s === 'Tous' ? candidatures.length : countByStatut(s) }})
     </button>
   </div>
 
-  <div class="syncing-banner" *ngIf="syncing">Synchronisation Gmail en cours...</div>
+  <!-- Banners -->
+  <div class="syncing-banner" *ngIf="syncing">
+    <div class="spinner-sm"></div>
+    Synchronisation Gmail en cours...
+  </div>
   <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
 
-  <div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
-    <table>
-      <thead>
-        <tr>
-          <th>ENTREPRISE</th>
-          <th>POSTE</th>
-          <th>STATUT</th>
-          <th>DATE</th>
-          <th>LIEN</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let c of filtered" [class]="'row-' + statutClass(c.statut)">
-          <td>
-            <div class="cell-entreprise">
-              <div class="row-avatar">{{ initial(c.entreprise) }}</div>
-              <span>{{ c.entreprise }}</span>
-            </div>
-          </td>
-          <td>{{ c.poste }}</td>
-          <td><span [class]="'badge badge-' + statutClass(c.statut)">{{ c.statut }}</span></td>
-          <td>{{ formatDate(c.date) }}</td>
-          <td>
-            <a *ngIf="c.gmail_link" [href]="c.gmail_link" target="_blank">✉</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Skeleton -->
+  <div class="skeleton-list" *ngIf="loading">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5]"></div>
   </div>
 
+  <!-- Tableau -->
+  <div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ENTREPRISE</th>
+            <th>POSTE</th>
+            <th>STATUT</th>
+            <th>DATE</th>
+            <th>LIEN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of filtered" [class]="'row-' + statutClass(c.statut)">
+            <td>
+              <div class="cell-entreprise">
+                <div class="row-avatar">{{ initial(c.entreprise) }}</div>
+                <span class="td-truncate">{{ c.entreprise }}</span>
+              </div>
+            </td>
+            <td class="td-truncate">{{ c.poste }}</td>
+            <td>
+              <span [class]="'badge badge-' + statutClass(c.statut)">{{ c.statut }}</span>
+            </td>
+            <td class="td-date">{{ formatDate(c.date) }}</td>
+            <td>
+              <a *ngIf="c.gmail_link" [href]="c.gmail_link" target="_blank" class="gmail-link">✉</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty -->
   <div class="empty-state" *ngIf="!loading && filtered.length === 0">
     <div class="empty-icon">📭</div>
     <span>Aucune candidature trouvée.</span>

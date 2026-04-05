@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 export interface StatItem {
   value: number;
   label: string;
+  color?: string;
 }
 
 @Component({

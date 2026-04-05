@@ -1,6 +1,6 @@
 <div class="stats">
   <div class="stat" *ngFor="let s of stats">
-    <span class="stat-value">{{ s.value }}</span>
+    <span class="stat-value" [style.color]="s.color || 'var(--accent)'">{{ s.value }}</span>
     <span class="stat-label">{{ s.label }}</span>
   </div>
 </div>

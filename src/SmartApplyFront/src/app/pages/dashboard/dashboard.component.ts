@@ -88,14 +88,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get statItems(): StatItem[] {
-    const fc = this.filteredCompanies;
-    return [
-      { value: fc.length,                                            label: 'Entreprises' },
-      { value: fc.filter(c => c.is_recruiting).length,              label: 'Recrutent'   },
-      // { value: fc.filter(c => c.job_offers?.length > 0).length,     label: 'Offres IT'   },
-      { value: fc.filter(c => !!c.contact_form?.url).length,        label: 'Contacts'    },
-    ];
-  }
+  const fc = this.filteredCompanies;
+  return [
+    { value: fc.length,                                        label: 'Entreprises', color: 'var(--accent)'  },
+    { value: fc.filter(c => c.is_recruiting).length,          label: 'Recrutent',   color: 'var(--accent5)'  },
+    // { value: fc.filter(c => c.job_offers?.length > 0).length, label: 'Offres IT',   color: 'var(--accent2)' },
+    { value: fc.filter(c => !!c.contact_form?.url).length,    label: 'Contacts',    color: 'var(--accent2)' },
+  ];
+}
 
   get cityItems(): CityCount[] {
     return [...new Set(this.companies.map(c => c.ville).filter(Boolean))]
