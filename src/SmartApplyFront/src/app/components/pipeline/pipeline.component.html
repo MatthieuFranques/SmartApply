@@ -3,8 +3,10 @@
   <!-- ── Config ── -->
   <div class="pipeline-config" *ngIf="!running && !done">
     <div class="config-field">
-      <label>VILLE(S)</label>
+      <label>
       <input [(ngModel)]="city" placeholder="Toulouse, Brussels..." />
+        VILLE(S)
+      </label>
     </div>
     <button class="btn-launch" (click)="launch()">
       ▶ LANCER LE PIPELINE

@@ -4,7 +4,7 @@ import { tap } from 'rxjs/operators'; // Indispensable pour le console.log
 
 @Injectable({ providedIn: 'root' })
 export class PipelineService {
-  private api = 'http://localhost:8000';
+  private readonly  api = 'http://localhost:8000';
 
   runFullPipeline(cities: string[]): Observable<any> {
     // concat attend la complétion de l'Observable précédent pour lancer le suivant
