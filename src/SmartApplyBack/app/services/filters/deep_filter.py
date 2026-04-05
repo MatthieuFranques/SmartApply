@@ -3,29 +3,16 @@ deep_filter.py
 --------------
 Filtrage approfondi ASYNC — 3 couches gratuites.
 """
-
-import os
-import sys
 import asyncio
-import argparse
 import aiohttp
 import aiodns
 
-sys.path.insert(0, os.path.dirname(__file__))
-
 from bs4           import BeautifulSoup
 from datetime      import datetime, timezone
-from dotenv        import load_dotenv
 from email.utils   import parsedate_to_datetime
-from filter_config import (TIMEOUT_HTTP, PAUSE, CONCURRENCY, MIN_DEEP_SCORE,
-                            HTTP_HEADERS, CAREER_PATHS, MX_PROVIDERS, IT_KEYWORDS)
-from app.services.filters.filter_json import load_json, save_json, DEEP_FILTER_FIELDS
-from filter_scoring import compute_deep_score
-
-load_dotenv()
-
-DEFAULT_INPUT  = "entreprises_prefiltered.json"
-DEFAULT_OUTPUT = "entreprises_deep_filtered.json"
+from app.services.filters.filter_config  import (TIMEOUT_HTTP, PAUSE, CONCURRENCY, MIN_DEEP_SCORE,
+                                                   HTTP_HEADERS, CAREER_PATHS, MX_PROVIDERS, IT_KEYWORDS)
+from app.services.filters.filter_scoring import compute_deep_score
 
 
 # ─── COUCHE 1 — FRAÎCHEUR DU SITE ───────────────────────────
@@ -144,11 +131,14 @@ async def check_career_page(session: aiohttp.ClientSession, domain: str) -> dict
 
 # ─── TRAITEMENT D'UNE ENTREPRISE ─────────────────────────────
 
-async def process_company(session: aiohttp.ClientSession,
-                           resolver: aiodns.DNSResolver,
-                           semaphore: asyncio.Semaphore,
-                           company: dict,
-                           index: int, total: int) -> dict:
+async def process_company(
+    session: aiohttp.ClientSession,
+    resolver: aiodns.DNSResolver,
+    semaphore: asyncio.Semaphore,
+    company: dict,
+    index: int,
+    total: int,
+) -> dict:
     async with semaphore:
         domain = company.get("domaine", "")
         name   = company.get("nom", "?")
@@ -185,9 +175,11 @@ async def process_company(session: aiohttp.ClientSession,
 
 # ─── PIPELINE PRINCIPAL ──────────────────────────────────────
 
-async def deep_filter_async(companies: list,
-                             min_score: int = MIN_DEEP_SCORE,
-                             concurrency: int = CONCURRENCY) -> tuple:
+async def deep_filter_async(
+    companies: list,
+    min_score: int = MIN_DEEP_SCORE,
+    concurrency: int = CONCURRENCY,
+) -> tuple:
     semaphore = asyncio.Semaphore(concurrency)
     total     = len(companies)
 
@@ -205,7 +197,7 @@ async def deep_filter_async(companies: list,
             for i, company in enumerate(companies)
         ])
 
-    kept    = sorted(
+    kept = sorted(
         [r for r in results if r["deep_score"] >= min_score],
         key=lambda x: x["deep_score"], reverse=True,
     )

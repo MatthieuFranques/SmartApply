@@ -1,115 +1,138 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+
 import { Company } from '../../models/company.model';
 import { CompanyDetailComponent } from '../company/company.detail.component';
 import { ApplicationsComponent } from '../applications/applications.component';
+import { PipelineComponent } from '../../components/pipeline/pipeline.component';
+import { AuthScreenComponent } from '../../components/authScreen/auth-screen.component';
+import { StatsBarComponent, StatItem } from '../../components/statsBar/stats-bar.component';
+import { CityFiltersComponent, CityCount } from '../../components/cityFilters/city-filters.component';
+import { CompanyTableComponent } from '../../components/companyTable/company-table.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, CompanyDetailComponent, ApplicationsComponent],
+  imports: [
+    CommonModule,
+    CompanyDetailComponent,
+    ApplicationsComponent,
+    PipelineComponent,
+    AuthScreenComponent,
+    StatsBarComponent,
+    CityFiltersComponent,
+    CompanyTableComponent,
+  ],
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.scss']
+  styleUrls:   ['./dashboard.component.scss'],
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit, OnDestroy {
 
   activeTab       : 'companies' | 'applications' = 'companies';
+  companies       : Company[]  = [];
+  loading         : boolean    = false;
+  statusMessage   : string     = '';
+  selectedCity    : string     = 'all';
+  selectedCompany : Company | null = null;
 
-  city            : string   = 'Toulouse';
-  companies       : Company[] = [];
-  loading         : boolean  = false;
-  statusMessage   : string   = '';
-  selectedCity    : string   = 'all';
-  availableCities : string[] = [];
-  selectedCompany : any      = null;
+  authenticated : boolean = false;
+  authChecking  : boolean = true;
+  currentUser: { email: string; name: string } | null = null;  
+  private readonly api = 'http://localhost:8000';
+  private readonly sub?: Subscription;
 
-  private api = 'http://localhost:8000';
+  constructor(private readonly http: HttpClient) {}
 
-  constructor(private http: HttpClient) {}
+  ngOnInit():    void { this.checkAuth(); }
+  ngOnDestroy(): void { this.sub?.unsubscribe(); }
 
-  // ─── Stats calculées ─────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────
 
-  get filteredCompanies() {
-    if (this.selectedCity === 'all') return this.companies;
-    return this.companies.filter(c =>
-      c.ville?.toLowerCase() === this.selectedCity.toLowerCase()
-    );
-  }
-
-  get recruiting()  { return this.filteredCompanies.filter(c => c.is_recruiting).length; }
-  get withOffers()  { return this.filteredCompanies.filter(c => c.job_offers?.length).length; }
-  get withContact() { return this.filteredCompanies.filter(c => c.contact_form?.url).length; }
-
-  filterByCity(city: string) {
-    this.selectedCity = city;
-  }
-
-  countByCity(city: string) {
-    return this.companies.filter(c =>
-      c.ville?.toLowerCase() === city.toLowerCase()
-    ).length;
-  }
-
-  // ─── Detail panel ────────────────────────────────────────
-
-  openDetail(company: any) {
-    this.selectedCompany = company;
-  }
-
-  closeDetail() {
-    this.selectedCompany = null;
-  }
-
-  onDeleted(nom: string) {
-    this.companies = this.companies.filter(c => c.nom !== nom);
-    this.selectedCompany = null;
-  }
-
-  // ─── Actions pipeline ────────────────────────────────────
-
-  onScrape() {
-    this.loading = true;
-    this.statusMessage = 'Scraping en cours...';
-    this.http.post(`${this.api}/scraping/start`, { cities: [this.city] })
-      .subscribe({
-        next: () => { this.statusMessage = 'Scraping terminé'; this.loadResults(); },
-        error: () => { this.statusMessage = 'Erreur scraping'; this.loading = false; },
-        complete: () => this.loading = false
-      });
-  }
-
-  onFilter() {
-    this.loading = true;
-    this.statusMessage = 'Filtrage en cours...';
-    this.http.post(`${this.api}/filter/start`, { cities: [this.city] })
-      .subscribe({
-        next: () => { this.statusMessage = 'Filtrage terminé'; this.loadResults(); },
-        error: () => { this.statusMessage = 'Erreur filtrage'; this.loading = false; },
-        complete: () => this.loading = false
-      });
-  }
-
-  onEnrich() {
-    this.loading = true;
-    this.statusMessage = 'Enrichissement en cours...';
-    this.http.post(`${this.api}/enrich/start`, {}).subscribe({
-      next: () => { this.statusMessage = 'Enrichissement terminé'; this.loadResults(); },
-      error: () => { this.statusMessage = 'Erreur enrichissement'; this.loading = false; },
-      complete: () => this.loading = false
+  checkAuth(): void {
+    this.authChecking = true;
+    this.http.get<{ authenticated: boolean; email: string; name: string }>(
+      `${this.api}/gmail/status`, { withCredentials: true },
+    ).subscribe({
+      next: (res) => {
+        this.authenticated = res.authenticated;
+        this.currentUser   = { email: res.email, name: res.name };
+        this.authChecking  = false;
+        if (this.authenticated) this.loadResults();
+      },
+      error: () => { this.authenticated = false; this.authChecking = false; },
     });
   }
 
-  // ─── Chargement des résultats ────────────────────────────
+  connectGmail(): void { globalThis.location.href = `${this.api}/gmail/auth`; }
 
-  loadResults() {
-    this.http.get<Company[]>(`${this.api}/enrich/results`).subscribe({
-      next: (data) => {
-        this.companies       = data;
-        this.availableCities = [...new Set(data.map(c => c.ville).filter(Boolean))];
+  logout(): void {
+    this.http.post(`${this.api}/gmail/logout`, {}, { withCredentials: true }).subscribe({
+      next: () => {
+        this.authenticated = false;
+        this.currentUser   = null;
+        this.companies     = [];
       },
-      error: () => this.statusMessage += ' (aucun résultat)'
+    });
+  }
+
+  // ── Computed pour les sous-composants ─────────────────────
+
+  get filteredCompanies(): Company[] {
+    if (!this.selectedCity || this.selectedCity === 'all') return this.companies;
+    return this.companies.filter(c =>
+      c.ville?.toLowerCase().trim() === this.selectedCity.toLowerCase().trim()
+    );
+  }
+
+  get statItems(): StatItem[] {
+  const fc = this.filteredCompanies;
+  return [
+    { value: fc.length,                                        label: 'Entreprises', color: 'var(--accent)'  },
+    { value: fc.filter(c => c.is_recruiting).length,          label: 'Recrutent',   color: 'var(--accent5)'  },
+    // { value: fc.filter(c => c.job_offers?.length > 0).length, label: 'Offres IT',   color: 'var(--accent2)' },
+    { value: fc.filter(c => !!c.contact_form?.url).length,    label: 'Contacts',    color: 'var(--accent2)' },
+  ];
+}
+
+  get cityItems(): CityCount[] {
+    return [...new Set(this.companies.map(c => c.ville).filter(Boolean))]
+      .map(name => ({
+        name,
+        count: this.companies.filter(c => c.ville?.toLowerCase() === name.toLowerCase()).length,
+      }));
+  }
+
+  // ── Actions ───────────────────────────────────────────────
+
+  filterByCity(city: string): void { this.selectedCity = city; }
+  openDetail(company: Company):  void { this.selectedCompany = company; }
+  closeDetail():                 void { this.selectedCompany = null; }
+  onDeleted(nom: string):        void {
+    this.companies       = this.companies.filter(c => c.nom !== nom);
+    this.selectedCompany = null;
+  }
+  onPipelineDone(): void { this.loadResults(); }
+
+  // ── Chargement ────────────────────────────────────────────
+
+  loadResults(): void {
+    this.loading = true;
+    this.statusMessage = 'Chargement des données...';
+    this.http.get<Company[]>(`${this.api}/enrich/results`, { withCredentials: true }).subscribe({
+      next: (data) => {
+        this.companies     = [...data];
+        this.loading       = false;
+        this.statusMessage = '';
+      },
+      error: (err) => {
+        this.loading = false;
+        this.statusMessage = err.status === 401
+          ? 'Session expirée — reconnecte-toi'
+          : `Erreur chargement (${err.status})`;
+        if (err.status === 401) this.authenticated = false;
+      },
     });
   }
 }

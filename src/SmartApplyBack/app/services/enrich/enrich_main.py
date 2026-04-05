@@ -1,105 +1,104 @@
 """
 enrich_main.py
 --------------
-Logique métier partagée entre le router FastAPI et le CLI.
+Enrichissement avec streaming SSE.
 """
-
-import os
-import json
 import time
 from dataclasses import asdict
+from typing import Generator
 
-from app.models.enrich import EnrichSummary
 from app.services.enrich.enrich_pipeline import enrich_company, summarize_context
 
 
-# ─── Chemins ─────────────────────────────────────────────────
-
-def find_deep_results(base_dir: str = "results") -> str:
-    filepath = os.path.join(base_dir, "deep_results.json")
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"Fichier introuvable : '{filepath}'")
-    print(f"  📂 deep_results : {filepath}")
-    return filepath
-
-
-def build_output_file(base_dir: str = "results") -> str:
-    return os.path.join(base_dir, "enriched.json")
-
-
-# ─── Pipeline d'enrichissement ───────────────────────────────
-
-def run_enrich(input_file: str, output_file: str, limit: int = None) -> EnrichSummary:
-    print(f"\n{'═'*55}")
-    print(f"  🧬 ENRICHISSEMENT")
-    print(f"{'═'*55}")
-    print(f"  📂 Entrée : {input_file}")
-    print(f"  📂 Sortie : {output_file}")
-
-    with open(input_file, encoding="utf-8") as f:
-        rows = json.load(f)
-
+def stream_enrich(
+    jobs: list[dict],
+    user_id: str,
+    repo,
+    limit: int = None,
+) -> Generator[dict, None, None]:
+    """
+    Générateur — yield chaque entreprise enrichie au fur et à mesure.
+    """
     if limit:
-        rows = rows[:limit]
+        jobs = jobs[:limit]
 
-    print(f"  📋 {len(rows)} entreprise(s) à traiter\n")
+    total  = len(jobs)
+    errors = 0
 
-    results, errors = [], 0
-    total = len(rows)
+    yield {"type": "start", "total": total}
 
-    for i, row in enumerate(rows, 1):
-        print(f"  [{i}/{total}] 🔍 {row.get('nom', '?')} ({row.get('domaine', '?')})")
+    for i, row in enumerate(jobs, 1):
+        yield {
+            "type":    "processing",
+            "company": row.get("nom", "?"),
+            "domaine": row.get("domaine", ""),
+            "index":   i,
+            "total":   total,
+        }
 
-        ctx = enrich_company(row)
-        results.append(asdict(ctx))
+        try:
+            ctx     = enrich_company(row)
+            enriched = asdict(ctx)
+            enriched["domaine"] = row["domaine"]
+            enriched["user_id"] = row.get("user_id", "")
 
-        if ctx.scrape_status != "ok":
+            # Sauvegarde immédiate en DB
+            repo.update_stage(
+                user_id      = user_id,
+                domaine      = row["domaine"],
+                stage        = "enriched",
+                extra_fields = {
+                    "description":       enriched.get("description"),
+                    "about_text":        enriched.get("about_text"),
+                    "tech_keywords":     enriched.get("tech_keywords", []),
+                    "job_keywords":      enriched.get("job_keywords", []),
+                    "job_titles_found":  enriched.get("job_titles_found", []),
+                    "key_phrases":       enriched.get("key_phrases", []),
+                    "company_size_hint": enriched.get("company_size_hint"),
+                    "is_recruiting":     enriched.get("is_recruiting"),
+                    "job_offers":        enriched.get("job_offers", []),
+                    "contact_form":      enriched.get("contact_form"),
+                    "scrape_status":     enriched.get("scrape_status"),
+                    "scrape_error":      enriched.get("scrape_error"),
+                },
+            )
+
+            if ctx.scrape_status != "ok":
+                errors += 1
+                yield {
+                    "type":    "result",
+                    "status":  "error",
+                    "company": row.get("nom", "?"),
+                    "domaine": row.get("domaine", ""),
+                    "error":   ctx.scrape_error,
+                }
+            else:
+                yield {
+                    "type":         "result",
+                    "status":       "ok",
+                    "company":      row.get("nom", "?"),
+                    "domaine":      row.get("domaine", ""),
+                    "summary":      summarize_context(ctx),
+                    "is_recruiting": ctx.is_recruiting,
+                    "job_offers":   len(ctx.job_offers),
+                    "has_contact":  bool(ctx.contact_form),
+                }
+
+        except Exception as e:
             errors += 1
-            print(f"      ⚠️  {ctx.scrape_status} : {ctx.scrape_error}")
-        else:
-            print(f"      ✅ {summarize_context(ctx)}")
+            yield {
+                "type":    "result",
+                "status":  "error",
+                "company": row.get("nom", "?"),
+                "domaine": row.get("domaine", ""),
+                "error":   str(e),
+            }
 
         time.sleep(1.5)
 
-    # ✅ Fix Windows — ne crée le dossier que s'il n'existe pas déjà
-    output_dir = os.path.dirname(output_file)
-    if output_dir and not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
-
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-
-    print(f"\n  📊 RÉSUMÉ")
-    print(f"  Total    : {len(results)}")
-    print(f"  Succès   : {len(results) - errors}")
-    print(f"  Erreurs  : {errors}")
-    print(f"  Offres   : {sum(1 for r in results if r.get('job_offers'))}")
-    print(f"  Contacts : {sum(1 for r in results if r.get('contact_form'))}")
-    print(f"  💾 Sauvegardé → {output_file}")
-
-    return EnrichSummary(
-        total        = len(results),
-        success      = len(results) - errors,
-        errors       = errors,
-        with_offers  = sum(1 for r in results if r.get("job_offers")),
-        with_contact = sum(1 for r in results if r.get("contact_form")),
-        output_file  = output_file,
-    )
-
-
-# ─── CLI ─────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Enrichit les entreprises du JSON via scraping.")
-    parser.add_argument("--input",    default=None,      help="Chemin vers le JSON d'entrée")
-    parser.add_argument("--output",   default=None,      help="Fichier JSON de sortie")
-    parser.add_argument("--base-dir", default="results", help="Dossier de base")
-    parser.add_argument("--limit",    type=int,          help="Nombre max d'entreprises")
-    args = parser.parse_args()
-
-    input_file  = args.input  or find_deep_results(args.base_dir)
-    output_file = args.output or build_output_file(args.base_dir)
-
-    run_enrich(input_file, output_file, args.limit)
+    yield {
+        "type":    "done",
+        "total":   total,
+        "success": total - errors,
+        "errors":  errors,
+    }

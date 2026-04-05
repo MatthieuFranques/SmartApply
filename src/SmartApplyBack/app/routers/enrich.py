@@ -1,44 +1,57 @@
 # app/routers/enrich.py
-
-from urllib import request
-
-from fastapi import APIRouter, HTTPException
-from typing import List
-import os
 import json
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 
-from app.models.enrich import EnrichRequest, EnrichResponse, EnrichSummary
-from app.services.enrich.enrich_main import run_enrich, find_deep_results, build_output_file
+from app.services.enrich.enrich_main import stream_enrich
+from app.repositories.job_repository import JobRepository
+from app.services.auth.dependency import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/enrich", tags=["Enrich"])
 
 
-@router.post("/start", response_model=EnrichResponse)
-def start_enrich(request: EnrichRequest):
+def _sse(data: dict) -> str:
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.get("/stream")
+def enrich_stream(
+    limit: int = Query(default=None),
+    current_user: User = Depends(get_current_user),
+):
+    repo = JobRepository()
+    jobs = [j.model_dump() for j in repo.find_by_stage(current_user.google_id, "deep")]
+
+    def generate():
+        if not jobs:
+            yield _sse({"type": "error", "message": "Aucun job à enrichir"})
+            return
+        for event in stream_enrich(jobs, current_user.google_id, repo, limit):
+            yield _sse(event)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control":               "no-cache",
+            "X-Accel-Buffering":           "no",
+            "Access-Control-Allow-Origin": "http://localhost:4200",
+        },
+    )
+
+@router.get("/results")
+def get_enriched_results(
+    current_user: User = Depends(get_current_user),
+):
     """
-    Lance l'enrichissement depuis le deep_results auto-détecté.
-    input_file optionnel — si absent, prend le deep_results le plus récent.
+    Récupère la liste finale des entreprises enrichies pour l'utilisateur.
+    C'est cette route que le Dashboard appellera pour remplir le tableau.
     """
-    print(f"\n POST /enrich/start")
-
-    try:
-        input_file = request.input_file or find_deep_results(request.base_dir or "results")
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    if not os.path.exists(input_file):
-        raise HTTPException(status_code=404, detail=f"Fichier introuvable : {input_file}")
-
-    output_file = request.output_file or build_output_file(request.base_dir or "results")
-    summary = run_enrich(input_file, output_file, request.limit)
-
-    return EnrichResponse(message="Enrichissement terminé ", summary=summary)
-
-
-@router.get("/results", response_model=List[dict])
-def get_enrich_results(output_dir: str = "./results"):
-    filepath = os.path.join(output_dir, "enriched.json")
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Aucun résultat disponible")
-    with open(filepath, encoding="utf-8") as f:
-        return json.load(f)
+    print("DEBUG: Récupération des résultats enrichis")
+    repo = JobRepository()
+    # On cherche les jobs qui ont atteint l'étape finale "enriched"
+    enriched_jobs = repo.find_by_stage(current_user.google_id, "enriched")
+    
+    # On convertit les modèles Pydantic en dictionnaires pour la réponse JSON
+    return [job.model_dump() for job in enriched_jobs]

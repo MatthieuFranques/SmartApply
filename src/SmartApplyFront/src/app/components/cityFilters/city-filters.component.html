@@ -1,0 +1,10 @@
+<div class="city-filters" *ngIf="cities.length > 1">
+  <button type="button"
+          (click)="citySelected.emit('all')"> Toutes ({{ total }})
+  </button>
+
+  <button type="button"
+          *ngFor="let c of cities"
+          (click)="citySelected.emit(c.name)"> {{ c.name }} ({{ c.count }})
+  </button>
+</div>

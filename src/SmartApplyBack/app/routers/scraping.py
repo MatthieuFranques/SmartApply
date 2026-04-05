@@ -1,35 +1,41 @@
 # app/routers/scraping.py
-
 import json
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from typing import List
-import os
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
-from app.services.scraping.scraping_main import run_scraping
-from app.models.scraping import ScrapingRequest, ScrapingResponse
+from app.services.scraping.scraping_main import stream_scraping
+from app.models.scraping import ScrapingRequest
+from app.repositories.job_repository import JobRepository
+from app.services.auth.dependency import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/scraping", tags=["Scraping"])
 
 
-@router.post("/start", response_model=ScrapingResponse)
-def start_scraping(request: ScrapingRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(run_scraping, request.cities, request.output_dir)
-    return ScrapingResponse(
-        message="Scraping lancé en arrière-plan ",
-        cities=request.cities,
-        output_dir=request.output_dir
+def _sse(data: dict) -> str:
+    """Formate un dict en événement SSE."""
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.get("/stream")
+def scrape_stream(
+    cities: str = "Toulouse",
+    current_user: User = Depends(get_current_user),
+):
+    """Stream SSE — envoie chaque entreprise trouvée en temps réel."""
+    cities_list = [c.strip() for c in cities.split(",")]
+    repo = JobRepository()
+
+    def generate():
+        for event in stream_scraping(cities_list, current_user.google_id, repo):
+            yield _sse(event)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control":               "no-cache",
+            "X-Accel-Buffering":           "no",
+            "Access-Control-Allow-Origin": "http://localhost:4200",
+        },
     )
-
-
-@router.get("/results", response_model=List[dict])
-def get_results(output_dir: str = "./results"):
-    """Retourne le contenu du fichier scraping_results.json."""
-    filepath = os.path.join(output_dir, "scraping_results.json")
-
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Aucun résultat disponible")
-
-    with open(filepath, encoding="utf-8") as f:
-        data = json.load(f)
-
-    return data

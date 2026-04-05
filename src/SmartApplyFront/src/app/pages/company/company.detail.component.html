@@ -1,6 +1,10 @@
 <!-- Overlay backdrop -->
-<div class="backdrop" [class.visible]="visible" (click)="close()"></div>
-
+<div class="backdrop" 
+     [class.visible]="visible" 
+     (click)="close()"
+     (keydown.escape)="close()"
+     tabindex="-1">
+</div>
 <!-- Slide panel -->
 <div class="panel" [class.open]="visible" *ngIf="company">
 

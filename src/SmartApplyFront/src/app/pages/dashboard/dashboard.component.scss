@@ -1,21 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@use '../../core/styles/shared' as *;
 
-// ─── Variables ───────────────────────────────────────────────
-:host {
-  --bg:        #0a0c10;
-  --surface:   #111318;
-  --surface2:  #181b22;
-  --border:    #1f2330;
-  --accent:    #00e5a0;
-  --accent2:   #0066ff;
-  --danger:    #ff4455;
-  --warning:   #ffaa00;
-  --text:      #e8eaf0;
-  --muted:     #4a5068;
-  --radius:    8px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
+:host { display: contents; }
 
 .dashboard {
   min-height: 100vh;
@@ -35,32 +20,27 @@
   justify-content: space-between;
   padding-bottom: 24px;
   border-bottom: 1px solid var(--border);
-
-  .header-left {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .logo {
-    font-family: 'Space Mono', monospace;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    span { color: var(--accent); }
-  }
-
-  .subtitle {
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 4px;
-    font-family: 'Space Mono', monospace;
-  }
 }
 
-// ─── Nav dans le header ──────────────────────────────────────
+.header-left { display: flex; flex-direction: column; }
+
+.logo {
+  @include mono(22px);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  span { color: var(--accent); }
+}
+
+.subtitle {
+  @include mono(11px);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+// ─── Nav ─────────────────────────────────────────────────────
 .header-nav {
   display: flex;
   align-items: center;
@@ -72,8 +52,7 @@
 }
 
 .nav-btn {
-  font-family: 'Space Mono', monospace;
-  font-size: 11px;
+  @include mono(11px);
   font-weight: 700;
   letter-spacing: 1px;
   padding: 8px 18px;
@@ -82,9 +61,10 @@
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.15s;
 
-  &:hover { color: var(--text); }
+  &:hover:not(:disabled) { color: var(--text); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 
   &.active {
     background: var(--surface2);
@@ -93,94 +73,43 @@
   }
 }
 
-// ─── Controls ────────────────────────────────────────────────
-.controls {
+.helper-btn {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.3);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 15px;
+  transition: all 0.3s;
 
-  .city-input {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    label {
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--muted);
-    }
-
-    input {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      padding: 8px 14px;
-      width: 160px;
-      transition: border-color 0.2s;
-      outline: none;
-
-      &:focus { border-color: var(--accent); }
-      &::placeholder { color: var(--muted); }
-    }
-  }
-
-  .divider {
-    width: 1px;
-    height: 36px;
-    background: var(--border);
+  &:hover {
+    background: #00d2b4;
+    border-color: #00d2b4;
+    transform: scale(1.1);
   }
 }
 
-// ─── Boutons ─────────────────────────────────────────────────
-.btn {
-  font-family: 'Space Mono', monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 9px 18px;
+.user-email {
+  @include mono(10px);
+  color: var(--muted);
+  padding: 0 8px;
+}
+
+.btn-logout {
+  @include mono(10px);
+  padding: 6px 12px;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
-  white-space: nowrap;
-
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  &.btn-scrape {
-  font-family: 'Space Mono', monospace;
-  padding: 8px 16px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--surface);
-  color: var(--accent); cursor: pointer; font-size: 11px;
-  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
-  &:hover:not(:disabled) { border-color: var(--accent); }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-  }
-
-  &.btn-filter {
-    font-family: 'Space Mono', monospace;
-  padding: 8px 16px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--surface);
-  color: var(--accent); cursor: pointer; font-size: 11px;
-  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
-  &:hover:not(:disabled) { border-color: var(--accent); }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-  }
-
-  &.btn-enrich {
-    background: transparent;
-     font-family: 'Space Mono', monospace;
-  padding: 8px 16px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--surface);
-  color: var(--accent); cursor: pointer; font-size: 11px;
-  font-weight: 700; letter-spacing: 1px; transition: all 0.15s;
-  &:hover:not(:disabled) { border-color: var(--accent); }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-}
+  &:hover { border-color: var(--danger); color: var(--danger); }
 }
 
 // ─── Status bar ──────────────────────────────────────────────
@@ -188,8 +117,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Space Mono', monospace;
-  font-size: 11px;
+  @include mono(11px);
   color: var(--muted);
   margin-left: 8px;
 
@@ -201,220 +129,14 @@
   }
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.8); }
-}
-
-// ─── Stats ───────────────────────────────────────────────────
-.stats {
+// ─── Auth checking ───────────────────────────────────────────
+.auth-checking {
   display: flex;
-  gap: 16px;
-
-  .stat {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 110px;
-
-    .stat-value {
-      font-family: 'Space Mono', monospace;
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-  }
-}
-
-// ─── Filtres ville ───────────────────────────────────────────
-.city-filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-
-  .filter-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-right: 4px;
-  }
-
-  .city-chip {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    padding: 5px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-
-    &:hover { border-color: var(--text); color: var(--text); }
-
-    &.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #000;
-      font-weight: 700;
-    }
-
-    &.all.active {
-      background: var(--accent2);
-      border-color: var(--accent2);
-      color: #fff;
-    }
-  }
-}
-
-// ─── Tableau ─────────────────────────────────────────────────
-.table-wrapper {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-
-  .table-scroll {
-    overflow-y: auto;
-    max-height: 560px;
-
-    &::-webkit-scrollbar       { width: 6px; }
-    &::-webkit-scrollbar-track { background: var(--surface); }
-    &::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    &::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-  }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-
-  thead {
-    position: sticky; top: 0; z-index: 10;
-    background: var(--surface2);
-
-    th {
-      padding: 12px 16px;
-      text-align: left;
-      font-family: 'Space Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-  }
-
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background 0.1s;
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: var(--surface2); }
-    &.row-error { border-left: 2px solid var(--danger); }
-
-    td {
-      padding: 12px 16px;
-      vertical-align: middle;
-      color: var(--text);
-      white-space: nowrap;
-
-      a { color: var(--accent2); text-decoration: none; &:hover { text-decoration: underline; } }
-    }
-  }
-}
-
-// ─── Badges ──────────────────────────────────────────────────
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-
-  &.green { background: rgba(0,229,160,0.12); color: var(--accent);  border: 1px solid rgba(0,229,160,0.25); }
-  &.grey  { background: rgba(74,80,104,0.2);  color: var(--muted);   border: 1px solid var(--border); }
-}
-
-// ─── Tags tech ───────────────────────────────────────────────
-.tags {
-  display: flex; gap: 4px; flex-wrap: wrap;
-
-  .tag {
-    background: rgba(0,102,255,0.12);
-    color: var(--accent2);
-    border: 1px solid rgba(0,102,255,0.2);
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-  }
-}
-
-// ─── Empty state ─────────────────────────────────────────────
-.empty {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 80px 32px;
+  gap: 12px;
+  min-height: 80vh;
   color: var(--muted);
-  font-size: 14px;
-  letter-spacing: 0.5px;
-
-  .empty-icon { font-size: 40px; opacity: 0.4; }
-}
-
-.td-truncate {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-
-.helper-btn {
-  background: rgba(255, 255, 255, 0.1); /* Fond légèrement transparent */
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%; /* Bouton rond */
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.3s ease;
-  font-weight: bold;
-  font-size: 16px;
-  margin-left: 15px;
-}
-
-.helper-btn:hover {
-  background: #00d2b4; /* Ta couleur Sarcelle "SmartApply" */
-  border-color: #00d2b4;
-  box-shadow: 0 0 10px rgba(0, 210, 180, 0.5);
-  transform: scale(1.1);
-}
-
-.helper-btn .icon {
-  line-height: 1;
+  @include mono(12px);
+  letter-spacing: 1px;
 }

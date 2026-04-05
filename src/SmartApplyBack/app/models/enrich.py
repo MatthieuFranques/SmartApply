@@ -15,7 +15,7 @@ class EnrichSummary(BaseModel):
     errors:       int
     with_offers:  int
     with_contact: int
-    output_file:  str
+    # output_file:  str
 
 class EnrichResponse(BaseModel):
     message: str
