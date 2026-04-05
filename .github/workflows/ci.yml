@@ -28,15 +28,16 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./src/SmartApplyBack 
-        run: pip install -r requirements.txt
-
-      - name: Install test dependencies
-        run: pip install pytest pytest-cov httpx
+        run: |
+          pip install -r requirements.txt
+          # On ajoute les dépendances de test ici pour être sûr
+          pip install pytest pytest-cov pytest-asyncio httpx python-jose[cryptography]
 
       - name: Run tests with coverage
         working-directory: ./src/SmartApplyBack
         env:
           PYTHONPATH: .
+          ENV: development 
         run: |
           pytest \
             --cov=. \
