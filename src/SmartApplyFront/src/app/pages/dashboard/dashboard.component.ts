@@ -1,24 +1,29 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 
 import { Company } from '../../models/company.model';
 import { CompanyDetailComponent } from '../company/company.detail.component';
 import { ApplicationsComponent } from '../applications/applications.component';
 import { PipelineComponent } from '../../components/pipeline/pipeline.component';
-import { PipelineService } from '../../services/pipeline.service';
+import { AuthScreenComponent } from '../../components/authScreen/auth-screen.component';
+import { StatsBarComponent, StatItem } from '../../components/statsBar/stats-bar.component';
+import { CityFiltersComponent, CityCount } from '../../components/cityFilters/city-filters.component';
+import { CompanyTableComponent } from '../../components/companyTable/company-table.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     CompanyDetailComponent,
     ApplicationsComponent,
-    PipelineComponent,      
+    PipelineComponent,
+    AuthScreenComponent,
+    StatsBarComponent,
+    CityFiltersComponent,
+    CompanyTableComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls:   ['./dashboard.component.scss'],
@@ -30,10 +35,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loading         : boolean    = false;
   statusMessage   : string     = '';
   selectedCity    : string     = 'all';
-  availableCities : string[]   = [];
-  selectedCompany : any        = null;
+  selectedCompany : Company | null = null;
 
-  // ── Auth ──────────────────────────────────────────────────
   authenticated : boolean = false;
   authChecking  : boolean = true;
   currentUser   : { email: string; name: string } | null = null;
@@ -41,10 +44,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private api = 'http://localhost:8000';
   private sub?: Subscription;
 
-  constructor(
-    private http:     HttpClient,
-    private pipeline: PipelineService,
-  ) {}
+  constructor(private http: HttpClient) {}
 
   ngOnInit():    void { this.checkAuth(); }
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
@@ -54,8 +54,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   checkAuth(): void {
     this.authChecking = true;
     this.http.get<{ authenticated: boolean; email: string; name: string }>(
-      `${this.api}/gmail/status`,
-      { withCredentials: true },
+      `${this.api}/gmail/status`, { withCredentials: true },
     ).subscribe({
       next: (res) => {
         this.authenticated = res.authenticated;
@@ -63,16 +62,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.authChecking  = false;
         if (this.authenticated) this.loadResults();
       },
-      error: () => {
-        this.authenticated = false;
-        this.authChecking  = false;
-      },
+      error: () => { this.authenticated = false; this.authChecking = false; },
     });
   }
 
-  connectGmail(): void {
-    window.location.href = `${this.api}/gmail/auth`;
-  }
+  connectGmail(): void { window.location.href = `${this.api}/gmail/auth`; }
 
   logout(): void {
     this.http.post(`${this.api}/gmail/logout`, {}, { withCredentials: true }).subscribe({
@@ -80,91 +74,66 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.authenticated = false;
         this.currentUser   = null;
         this.companies     = [];
-        this.sub?.unsubscribe();
       },
     });
   }
 
-  // ── Stats calculées ───────────────────────────────────────
+  // ── Computed pour les sous-composants ─────────────────────
 
   get filteredCompanies(): Company[] {
-  // Si on veut tout, on s'arrête là
-  if (!this.selectedCity || this.selectedCity === 'all') {
-    return this.companies;
+    if (!this.selectedCity || this.selectedCity === 'all') return this.companies;
+    return this.companies.filter(c =>
+      c.ville?.toLowerCase().trim() === this.selectedCity.toLowerCase().trim()
+    );
   }
-  
-  // Filtrage sécurisé contre les valeurs null/undefined
-  return this.companies.filter(c => {
-    if (!c.ville) return false;
-    return c.ville.toLowerCase().trim() === this.selectedCity.toLowerCase().trim();
-  });
-}
 
-get recruiting(): number { 
-  if (!this.filteredCompanies.length) return 0;
-  return this.filteredCompanies.filter(c => c.is_recruiting === true).length; 
-}
+  get statItems(): StatItem[] {
+    const fc = this.filteredCompanies;
+    return [
+      { value: fc.length,                                            label: 'Entreprises' },
+      { value: fc.filter(c => c.is_recruiting).length,              label: 'Recrutent'   },
+      // { value: fc.filter(c => c.job_offers?.length > 0).length,     label: 'Offres IT'   },
+      { value: fc.filter(c => !!c.contact_form?.url).length,        label: 'Contacts'    },
+    ];
+  }
 
-get withOffers(): number { 
-  if (!this.filteredCompanies.length) return 0;
-  return this.filteredCompanies.filter(c => c.job_offers && c.job_offers.length > 0).length; 
-}
+  get cityItems(): CityCount[] {
+    return [...new Set(this.companies.map(c => c.ville).filter(Boolean))]
+      .map(name => ({
+        name,
+        count: this.companies.filter(c => c.ville?.toLowerCase() === name.toLowerCase()).length,
+      }));
+  }
 
-get withContact(): number { 
-  if (!this.filteredCompanies.length) return 0;
-  return this.filteredCompanies.filter(c => !!c.contact_form?.url).length; 
-}
+  // ── Actions ───────────────────────────────────────────────
 
   filterByCity(city: string): void { this.selectedCity = city; }
-
-  countByCity(city: string): number {
-    return this.companies.filter(c =>
-      c.ville?.toLowerCase() === city.toLowerCase()
-    ).length;
-  }
-
-  openDetail(company: any):  void { this.selectedCompany = company; }
-  closeDetail():             void { this.selectedCompany = null; }
-  onDeleted(nom: string):    void {
-    this.companies      = this.companies.filter(c => c.nom !== nom);
+  openDetail(company: Company):  void { this.selectedCompany = company; }
+  closeDetail():                 void { this.selectedCompany = null; }
+  onDeleted(nom: string):        void {
+    this.companies       = this.companies.filter(c => c.nom !== nom);
     this.selectedCompany = null;
   }
+  onPipelineDone(): void { this.loadResults(); }
 
-  // ── Callback du pipeline — recharge les résultats ────────
-  // Appelé par (pipelineDone) depuis le template
-  onPipelineDone(): void {
-    this.loadResults();
-  }
+  // ── Chargement ────────────────────────────────────────────
 
-  // ── Chargement des résultats depuis la DB ─────────────────
   loadResults(): void {
-  this.loading = true;
-  this.statusMessage = 'Chargement des données...';
-
-  this.http.get<Company[]>(
-    `${this.api}/enrich/results`,
-    { withCredentials: true }
-  ).subscribe({
-    next: (data) => {
-  this.companies = [...data]; // Force la nouvelle référence
-  this.availableCities = [...new Set(data.map(c => c.ville).filter(Boolean))];
-  this.loading = false;
-},
-    error: (err) => {
-      this.loading = false;
-      this.handleError(err, 'chargement');
-    }
-  });
-}
-
-  // ── Gestion erreurs centralisée ───────────────────────────
-  private handleError(err: any, context: string): void {
-    this.loading = false;
-    if (err.status === 401) {
-      this.authenticated = false;
-      this.statusMessage = 'Session expirée — reconnecte-toi';
-    } else {
-      this.statusMessage = `Erreur ${context} (${err.status})`;
-    }
+    this.loading = true;
+    this.statusMessage = 'Chargement des données...';
+    this.http.get<Company[]>(`${this.api}/enrich/results`, { withCredentials: true }).subscribe({
+      next: (data) => {
+        this.companies     = [...data];
+        this.loading       = false;
+        this.statusMessage = '';
+      },
+      error: (err) => {
+        this.loading = false;
+        this.statusMessage = err.status === 401
+          ? 'Session expirée — reconnecte-toi'
+          : `Erreur chargement (${err.status})`;
+        if (err.status === 401) this.authenticated = false;
+      },
+    });
   }
 }
