@@ -3,3 +3,28 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+// ─── Variables globales (accessible par tous les composants) ─
+:root {
+  --bg:      #0a0c10;
+  --surface: #111318;
+  --surface2:#181b22;
+  --border:  #1f2330;
+  --accent:  #00e5a0;
+  --accent2: #0066ff;
+  --danger:  #ff4455;
+  --warning: #ffaa00;
+  --text:    #e8eaf0;
+  --muted:   #4a5068;
+  --radius:  8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+}

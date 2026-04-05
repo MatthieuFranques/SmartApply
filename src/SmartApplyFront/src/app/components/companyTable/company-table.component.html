@@ -1,0 +1,43 @@
+<div class="table-wrapper" *ngIf="companies.length; else empty">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th><th>Domaine</th><th>Ville</th><th>Secteur</th>
+          <th>Taille</th><th>Recrute</th><th>Offres</th><th>Contact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of companies" (click)="rowClick.emit(c)">
+          <td class="td-truncate" [title]="c.nom">{{ c.nom || '—' }}</td>
+          <td>
+            <a [href]="'https://' + c.domaine" target="_blank"
+               (click)="$event.stopPropagation()">{{ c.domaine || '—' }}</a>
+          </td>
+          <td>{{ c.ville    || '—' }}</td>
+          <td>{{ c.secteur  || '—' }}</td>
+          <td>{{ c.company_size_hint || '—' }}</td>
+          <td>
+            <span [class]="'badge ' + (c.is_recruiting ? 'green' : 'grey')">
+              {{ c.is_recruiting ? 'Oui' : 'Non' }}
+            </span>
+          </td>
+          <td>{{ c.job_offers?.length || '—' }}</td>
+          <td>
+            <a *ngIf="c.contact_form?.url"
+               [href]="c.contact_form!.url" target="_blank"
+               (click)="$event.stopPropagation()">🔗</a>
+            <span *ngIf="!c.contact_form?.url">—</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<ng-template #empty>
+  <div class="empty">
+    <div class="empty-icon">📭</div>
+    Lance le pipeline pour voir les résultats ici
+  </div>
+</ng-template>

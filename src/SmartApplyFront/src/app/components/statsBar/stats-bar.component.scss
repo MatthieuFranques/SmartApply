@@ -1,0 +1,32 @@
+@use '../../core/styles/shared' as *;
+
+.stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+ 
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 110px;
+}
+ 
+.stat-value {
+  @include mono(28px);
+  font-weight: 700;
+  line-height: 1;
+  // la couleur est appliquée inline via [style.color]
+}
+ 
+.stat-label {
+  @include mono(11px);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}

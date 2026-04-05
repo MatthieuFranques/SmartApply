@@ -1,49 +1,64 @@
 # app/routers/filter.py
-
-from fastapi import APIRouter, HTTPException
-from typing import List
-import os
 import json
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 
-from app.models.filter import FilterRequest, FilterResponse, FilterSummary
-from app.services.filters.filters_main import run_pipeline
+from app.services.filters.filters_main import stream_pipeline
+from app.services.filters.filter_config import MIN_PRESCORE, MIN_DEEP_SCORE, CONCURRENCY
+from app.repositories.job_repository import JobRepository
+from app.services.auth.dependency import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/filter", tags=["Filter"])
 
 
-@router.post("/start", response_model=FilterResponse)
-def start_filter(request: FilterRequest):
-    result = run_pipeline(
-        cities         = request.cities,
-        base_dir       = request.base_dir,
-        min_prescore   = request.min_prescore,
-        min_deep_score = request.min_deep_score,
-        concurrency    = request.concurrency,
-        skip_deep      = request.skip_deep,
+def _sse(data: dict) -> str:
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.get("/stream")
+def filter_stream(
+    min_prescore:   int  = Query(default=MIN_PRESCORE),
+    min_deep_score: int  = Query(default=MIN_DEEP_SCORE),
+    concurrency:    int  = Query(default=CONCURRENCY),
+    skip_deep:      bool = Query(default=False),
+    current_user: User = Depends(get_current_user),
+):
+    repo = JobRepository()
+    jobs = [j.model_dump() for j in repo.find_by_stage(current_user.google_id, "scraping")]
+
+    def generate():
+        if not jobs:
+            yield _sse({"type": "error", "message": "Aucun job à filtrer"})
+            return
+        for event in stream_pipeline(
+            jobs, current_user.google_id, repo,
+            min_prescore, min_deep_score, concurrency, skip_deep
+        ):
+            yield _sse(event)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control":               "no-cache",
+            "X-Accel-Buffering":           "no",
+            "Access-Control-Allow-Origin": "http://localhost:4200",
+        },
     )
 
-    if not result["pre_kept"]:
-        raise HTTPException(status_code=422, detail="Aucune entreprise n'a passé le préfiltrage")
-
-    return FilterResponse(
-        message="Pipeline terminé ✅",
-        summary=FilterSummary(
-            cities     = request.cities,
-            output_dir = request.base_dir,
-            pre_kept   = len(result["pre_kept"]),
-            deep_kept  = len(result["deep_kept"]),
-            paths      = result["paths"],
-        )
-    )
-
-
-@router.get("/results", response_model=List[dict])
-def get_filter_results(output_dir: str = "./results"):
-    """Retourne le contenu de deep_results.json."""
-    filepath = os.path.join(output_dir, "deep_results.json")
-
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Aucun résultat disponible")
-
-    with open(filepath, encoding="utf-8") as f:
-        return json.load(f)
+@router.get("/results")
+def get_filtered_results(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Récupère la liste des entreprises ayant passé le filtrage (stage 'deep').
+    Utile pour voir les résultats intermédiaires avant l'enrichissement final.
+    """
+    print(f"DEBUG: Récupération des résultats filtrés pour {current_user.email}")
+    repo = JobRepository()
+    
+    # On cherche les jobs qui ont le stage "deep" (retenus après filtrage)
+    filtered_jobs = repo.find_by_stage(current_user.google_id, "deep")
+    
+    return [job.model_dump() for job in filtered_jobs]

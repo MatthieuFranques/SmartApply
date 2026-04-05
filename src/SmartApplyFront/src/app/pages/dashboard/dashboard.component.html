@@ -1,130 +1,68 @@
 <div class="dashboard">
 
-  <!-- ── Header avec navigation intégrée ── -->
-  <div class="header">
-    <div class="header-left">
-      <div class="logo">Smart<span>Apply</span></div>
-      <div class="subtitle">job search pipeline</div>
-    </div>
-    <nav class="header-nav">
-      <button class="nav-btn" [class.active]="activeTab === 'companies'" (click)="activeTab = 'companies'">
-       ENTREPRISES
-      </button>
-      <button class="nav-btn" [class.active]="activeTab === 'applications'" (click)="activeTab = 'applications'">
-        CANDIDATURES
-      </button>
-      <button class="nav-btn" disabled>
-        OFFRES
-      </button>
-      <button class="helper-btn" title="Besoin d'aide ?">
-        <!-- (click)="openHelp()" -->
-      <span class="icon">?</span>
-    </button>
-    </nav>
+  <!-- Auth checking -->
+  <div class="auth-checking" *ngIf="authChecking">
+    <div class="spinner"></div>
+    <span>Vérification de la session...</span>
   </div>
 
-  <!-- ONGLET 1 — Entreprises -->
-  <ng-container *ngIf="activeTab === 'companies'">
+  <!-- Écran connexion -->
+  <app-auth-screen
+    *ngIf="!authChecking && !authenticated"
+    [errorMessage]="statusMessage"
+    (connect)="connectGmail()">
+  </app-auth-screen>
 
-    <div class="controls">
-      <div class="divider"></div>
-      <button class="btn btn-scrape" (click)="onScrape()"    [disabled]="loading">Scraper</button>
-      <button class="btn btn-filter" (click)="onFilter()"    [disabled]="loading">Filtrer</button>
-      <button class="btn btn-enrich" (click)="onEnrich()"    [disabled]="loading">Enrich data</button>
-      <button class="btn btn-scrape" (click)="loadResults()" [disabled]="loading">Load data</button>
+  <!-- App principale -->
+  <ng-container *ngIf="!authChecking && authenticated">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="logo">Smart<span>Apply</span></div>
+        <div class="subtitle">job search pipeline</div>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn" [class.active]="activeTab === 'companies'"
+                (click)="activeTab = 'companies'">ENTREPRISES</button>
+        <button class="nav-btn" [class.active]="activeTab === 'applications'"
+                (click)="activeTab = 'applications'">CANDIDATURES</button>
+        <button class="nav-btn" disabled>OFFRES</button>
+        <button class="helper-btn" title="Besoin d'aide ?"><span class="icon">?</span></button>
+        <span class="user-email">{{ currentUser?.email }}</span>
+        <button class="btn-logout" (click)="logout()">DÉCO</button>
+      </nav>
+    </div>
+
+    <!-- Onglet Entreprises -->
+    <ng-container *ngIf="activeTab === 'companies'">
+      <app-pipeline (pipelineDone)="onPipelineDone()"></app-pipeline>
+
       <div class="status-bar" *ngIf="loading || statusMessage">
         <div class="dot" *ngIf="loading"></div>
         {{ statusMessage }}
       </div>
-    </div>
 
-    <div class="stats" *ngIf="companies.length">
-      <div class="stat">
-        <span class="stat-value">{{ filteredCompanies.length }}</span>
-        <span class="stat-label">Entreprises</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value">{{ recruiting }}</span>
-        <span class="stat-label">Recrutent</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value">{{ withOffers }}</span>
-        <span class="stat-label">Offres IT</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value">{{ withContact }}</span>
-        <span class="stat-label">Contacts</span>
-      </div>
-    </div>
+      <app-stats-bar *ngIf="companies.length" [stats]="statItems"></app-stats-bar>
 
-    <div class="city-filters" *ngIf="availableCities.length > 1">
-      <span class="filter-label">Ville</span>
-      <button class="city-chip all"
-              [class.active]="selectedCity === 'all'"
-              (click)="filterByCity('all')">
-        Toutes ({{ companies.length }})
-      </button>
-      <button *ngFor="let c of availableCities"
-              class="city-chip"
-              [class.active]="selectedCity === c"
-              (click)="filterByCity(c)">
-        {{ c }} ({{ countByCity(c) }})
-      </button>
-    </div>
+      <app-city-filters
+        [cities]="cityItems"
+        [selected]="selectedCity"
+        [total]="companies.length"
+        (select)="filterByCity($event)">
+      </app-city-filters>
 
-    <div class="table-wrapper" *ngIf="filteredCompanies.length; else emptyState">
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Nom</th>
-              <th>Domaine</th>
-              <th>Ville</th>
-              <th>Secteur</th>
-              <th>Taille</th>
-              <th>Recrute</th>
-              <th>Offres</th>
-              <th>Contact</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let c of filteredCompanies"
-                [class.row-error]="c.scrape_status === 'error'"
-                (click)="openDetail(c)"
-                style="cursor: pointer;">
-              <td class="td-truncate" [title]="c.nom">{{ c.nom }}</td>
-              <td><a [href]="'https://' + c.domaine" target="_blank">{{ c.domaine }}</a></td>
-              <td>{{ c.ville }}</td>
-              <td>{{ c.secteur }}</td>
-              <td>{{ c.company_size_hint || '—' }}</td>
-              <td>
-                <span [class]="'badge ' + (c.is_recruiting ? 'green' : 'grey')">
-                  {{ c.is_recruiting ? 'Oui' : 'Non' }}
-                </span>
-              </td>
-              <td>{{ c.job_offers.length || '—' }}</td>
-              <td>
-                <a *ngIf="c.contact_form?.url" [href]="c.contact_form.url" target="_blank">🔗</a>
-                <span *ngIf="!c.contact_form?.url">—</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <app-company-table
+        [companies]="filteredCompanies"
+        (rowClick)="openDetail($event)">
+      </app-company-table>
+    </ng-container>
 
-    <ng-template #emptyState>
-      <div class="empty">
-        <div class="empty-icon">📭</div>
-        Lance un scraping pour voir les résultats ici
-      </div>
-    </ng-template>
+    <!-- Onglet Candidatures -->
+    <ng-container *ngIf="activeTab === 'applications'">
+      <app-applications></app-applications>
+    </ng-container>
 
-  </ng-container>
-
-  <!-- ONGLET 2 — Candidatures -->
-  <ng-container *ngIf="activeTab === 'applications'">
-    <app-applications></app-applications>
   </ng-container>
 
 </div>

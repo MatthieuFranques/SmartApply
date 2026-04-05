@@ -1,41 +1,56 @@
 services:
-  # MongoDB : 
-  # mongodb:
-  #   image: mongo:latest
-  #   container_name: smartapply-db
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongo_data:/data/db
+  mongodb:
+    image: mongo:7
+    container_name: smartapply-db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # Backend : 
+
   backend:
     build: ./src/SmartApplyBack
     container_name: smartapply-api
     ports:
       - "8000:8000"
     env_file: ./src/SmartApplyBack/.env
-    # depends_on:
-    #   - mongodb
-    volumes:
-      - ./src/SmartApplyBack:/app # Hot-Reload
+    depends_on:
+      mongodb:
+        condition: service_healthy
     deploy:
       resources:
         limits:
           memory: 1G
 
-  
-  frontend:
-    build: ./src/SmartApplyFront
-    container_name: smartapply-ui
-    ports:
-      - "4200:4200"
-    depends_on:
-      - backend
-    volumes:
-      - ./src/SmartApplyFront:/app #Hot-Reload
-      - /app/node_modules
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G
+  # frontend:
+  #   build: ./src/SmartApplyFront
+  #   container_name: smartapply-ui
+  #   ports:
+  #     - "4200:4200"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./src/SmartApplyFront:/app #Hot-Reload
+  #     - /app/node_modules
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1.5G
+
+volumes:
+  mongo_data:

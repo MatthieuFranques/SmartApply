@@ -1,69 +1,76 @@
-import json
 import pytest
-from unittest.mock import patch, MagicMock, mock_open
+from fastapi.testclient import TestClient
+from app.main import app  # Importe ton instance FastAPI
+from app.services.auth.dependency import get_current_user
+from app.repositories.job_repository import JobRepository
+from app.models.user import User
+from app.models.job import Job
 
+# 1. Création du client de test
+client = TestClient(app)
 
-class TestEnrichStart:
+# 2. Mock de l'utilisateur connecté
+def override_get_current_user():
+    return User(
+        google_id="google_123",
+        email="test@gmail.com",
+        name="Test User",
+        access_token="fake_access_token",
+        refresh_token="fake_refresh_token",  # Ajouté
+        token_expiry=3600,                   # Ajouté (un int ou float selon ton modèle)
+        picture="http://example.com/p.jpg",  # Ajoute aussi picture et scopes si Pydantic râle encore
+        scopes=["https://www.googleapis.com/auth/gmail.readonly"]
+    )
 
-    def test_start_enrich_success(self, client):
-        """Enrichissement OK → 200 + summary."""
-        mock_summary = MagicMock()
-        mock_summary.__dict__ = {"total": 10, "enriched": 8, "errors": 2}
+# On remplace la dépendance réelle par notre version de test
+app.dependency_overrides[get_current_user] = override_get_current_user
 
-        with patch("app.routers.enrich.find_deep_results", return_value="./results/deep.json"), \
-             patch("os.path.exists", return_value=True), \
-             patch("app.routers.enrich.build_output_file", return_value="./results/enriched.json"), \
-             patch("app.routers.enrich.run_enrich", return_value=mock_summary):
-            response = client.post("/enrich/start", json={})
+# 3. Mock du Repository
+class MockJobRepository:
+    def find_by_stage(self, user_id, stage):
+        if stage == "enriched":
+            return [
+                Job(
+                    _id="69d13952bfd0ece28a4f2f7a", 
+                    user_id="google_123",
+                    nom="Test Corp",
+                    domaine="test.com",
+                    secteur="Informatique",
+                    ville="Toulouse",
+                    stage="enriched", 
+                    status="active"    
+                )
+            ]
+        return []
+# --- TESTS ---
+
+def test_get_enriched_results(monkeypatch):
+    """Vérifie que la route /results renvoie bien une liste de jobs enrichis."""
+    
+    # On force l'utilisation du MockRepository au lieu du vrai
+    monkeypatch.setattr("app.routers.enrich.JobRepository", MockJobRepository)
+
+    response = client.get("/enrich/results")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+    assert data[0]["nom"] == "Test Corp"
+    assert data[0]["stage"] == "enriched"
+
+def test_enrich_stream_no_jobs(monkeypatch):
+    """Vérifie le comportement du stream SSE quand il n'y a rien à traiter."""
+    
+    # Mock qui renvoie une liste vide pour le stage "deep"
+    class EmptyRepo:
+        def find_by_stage(self, uid, stage): return []
+    
+    monkeypatch.setattr("app.routers.enrich.JobRepository", EmptyRepo)
+
+    # On utilise un contexte de streaming
+    with client.stream("GET", "/enrich/stream") as response:
         assert response.status_code == 200
-        assert "message" in response.json()
-
-    def test_start_enrich_no_deep_results(self, client):
-        """Pas de deep_results → 404."""
-        with patch("app.routers.enrich.find_deep_results",
-                   side_effect=FileNotFoundError("Aucun deep_results trouvé")):
-            response = client.post("/enrich/start", json={})
-        assert response.status_code == 404
-
-    def test_start_enrich_input_file_not_found(self, client):
-        """input_file fourni mais inexistant → 404."""
-        with patch("app.routers.enrich.find_deep_results", return_value="./results/deep.json"), \
-             patch("os.path.exists", return_value=False):
-            response = client.post("/enrich/start", json={"input_file": "./results/deep.json"})
-        assert response.status_code == 404
-
-    def test_start_enrich_with_limit(self, client):
-        """Paramètre limit accepté."""
-        mock_summary = MagicMock()
-        with patch("app.routers.enrich.find_deep_results", return_value="./results/deep.json"), \
-             patch("os.path.exists", return_value=True), \
-             patch("app.routers.enrich.build_output_file", return_value="./results/enriched.json"), \
-             patch("app.routers.enrich.run_enrich", return_value=mock_summary):
-            response = client.post("/enrich/start", json={"limit": 5})
-        assert response.status_code == 200
-
-
-class TestEnrichResults:
-
-    def test_get_results_success(self, client, mock_company):
-        """Retourne enriched.json."""
-        mock_data = json.dumps([mock_company])
-        with patch("os.path.exists", return_value=True), \
-             patch("builtins.open", mock_open(read_data=mock_data)):
-            response = client.get("/enrich/results")
-        assert response.status_code == 200
-        assert response.json()[0]["nom"] == "TestCorp"
-
-    def test_get_results_not_found(self, client):
-        """Fichier absent → 404."""
-        with patch("os.path.exists", return_value=False):
-            response = client.get("/enrich/results")
-        assert response.status_code == 404
-
-    def test_get_results_custom_dir(self, client, mock_company):
-        """output_dir personnalisé."""
-        mock_data = json.dumps([mock_company])
-        with patch("os.path.exists", return_value=True), \
-             patch("builtins.open", mock_open(read_data=mock_data)):
-            response = client.get("/enrich/results?output_dir=./custom")
-        assert response.status_code == 200
+        # Lit le premier événement SSE
+        first_event = next(response.iter_lines())
+        assert "Aucun job à enrichir" in first_event

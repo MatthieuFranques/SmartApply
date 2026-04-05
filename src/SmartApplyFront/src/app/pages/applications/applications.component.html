@@ -1,170 +1,85 @@
 <div class="applications-container">
 
-  <!-- ── Auth checking ── -->
-  <div class="auth-checking" *ngIf="authChecking">
-    <div class="spinner"></div>
-    <span>Vérification de la connexion Gmail...</span>
-  </div>
-
-  <!-- ── Écran connexion ── -->
-  <div class="auth-screen" *ngIf="!authChecking && !authenticated">
-    <div class="auth-card">
-      <div class="auth-icon">✉️</div>
-      <h2 class="auth-title">Connecte ton Gmail</h2>
-      <p class="auth-desc">
-        SmartApply lit tes mails labellisés pour afficher<br>
-        tes candidatures envoyées, relancées et refusées.
-      </p>
-      <div class="auth-scopes">
-        <div class="scope-item">🔒 Lecture seule — aucune modification</div>
-        <div class="scope-item">🏷️ Accès aux libellés uniquement</div>
-        <div class="scope-item">💾 Données mises en cache localement</div>
-      </div>
-      <button class="btn-connect" (click)="connectGmail()">
-        <span class="google-icon">G</span>
-        Se connecter avec Google
-      </button>
-      <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
+  <!-- Header -->
+  <div class="applications-header">
+    <div class="header-left">
+      <h2>MES CANDIDATURES</h2>
+      <span class="sync-info" *ngIf="syncStatus">
+        {{ formatLastSync() }} · {{ syncStatus.total_en_cache }} en cache
+      </span>
     </div>
-  </div>
-
-  <!-- ── Vue principale ── -->
-  <ng-container *ngIf="!authChecking && authenticated">
-
-    <!-- Header -->
-    <div class="applications-header">
-      <div class="header-left">
-        <h2>MES CANDIDATURES</h2>
-        <span class="sync-info" *ngIf="syncStatus">
-         {{ formatLastSync() }} · {{ syncStatus.total_en_cache }} en cache
-        </span>
-      </div>
-      <div class="header-actions">
-        <button class="btn-reset" (click)="onFullReset()" [disabled]="syncing || loading"
-                title="Réinitialiser et tout resync">
-          ↺ RESET
-        </button>
-        <button class="btn-refresh" (click)="onRefresh()" [disabled]="syncing || loading">
-          {{ syncing ? 'SYNC...' : 'RAFRAÎCHIR' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Résultat de la dernière sync -->
-    <div class="stats" *ngIf="candidatures.length">
-  <div class="stat">
-    <span class="stat-value">{{ candidatures.length }}</span>
-    <span class="stat-label">Total</span>
-  </div>
-  <div class="stat">
-    <span class="stat-value stat-entretien">{{ countByStatut('Entretien') }}</span>
-    <span class="stat-label">Entretiens</span>
-  </div>
-  <div class="stat">
-    <span class="stat-value stat-attente">{{ countByStatut('En attente') }}</span>
-    <span class="stat-label">En attente</span>
-  </div>
-  <div class="stat">
-    <span class="stat-value stat-refuse">{{ countByStatut('Refusé') }}</span>
-    <span class="stat-label">Refusés</span>
-  </div>
-  <div class="stat stat-sync" *ngIf="lastSyncResult">
-    <span class="stat-value stat-sync-value">+{{ lastSyncResult.nouvelles }}</span>
-    <span class="stat-label">Nouvelles</span>
-  </div>
-</div>
-    
-    <!-- Syncing banner -->
-    <div class="syncing-banner" *ngIf="syncing">
-      <div class="spinner-sm"></div>
-      Synchronisation avec Gmail en cours...
-    </div>
-
-    <!-- Filtres -->
-    <div class="filter-bar">
-      <button
-        *ngFor="let s of statuts"
-        class="filter-btn"
-        [class.active]="activeStatut === s"
-        (click)="onFilterChange(s)">
-        {{ s.toUpperCase() }}
+    <div class="header-actions">
+      <button class="btn-reset"    (click)="onFullReset()" [disabled]="syncing || loading">↺ RESET</button>
+      <button class="btn-refresh"  (click)="onRefresh()"   [disabled]="syncing || loading">
+        {{ syncing ? 'SYNC...' : 'RAFRAÎCHIR' }}
       </button>
     </div>
+  </div>
 
-    <!-- Erreur -->
-    <div class="error-banner" *ngIf="error">
-      ⚠️ {{ error }}
+  <!-- Stats — même composant que le dashboard -->
+  <app-stats-bar *ngIf="candidatures.length" [stats]="statItems"></app-stats-bar>
+
+  <!-- Filtres -->
+  <div class="filter-bar">
+    <button *ngFor="let s of statuts"
+            class="filter-btn"
+            [class.active]="activeStatut === s"
+            (click)="onFilterChange(s)">
+      {{ s.toUpperCase() }} ({{ s === 'Tous' ? candidatures.length : countByStatut(s) }})
+    </button>
+  </div>
+
+  <!-- Banners -->
+  <div class="syncing-banner" *ngIf="syncing">
+    <div class="spinner-sm"></div>
+    Synchronisation Gmail en cours...
+  </div>
+  <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
+
+  <!-- Skeleton -->
+  <div class="skeleton-list" *ngIf="loading">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5]"></div>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ENTREPRISE</th>
+            <th>POSTE</th>
+            <th>STATUT</th>
+            <th>DATE</th>
+            <th>LIEN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of filtered" [class]="'row-' + statutClass(c.statut)">
+            <td>
+              <div class="cell-entreprise">
+                <div class="row-avatar">{{ initial(c.entreprise) }}</div>
+                <span class="td-truncate">{{ c.entreprise }}</span>
+              </div>
+            </td>
+            <td class="td-truncate">{{ c.poste }}</td>
+            <td>
+              <span [class]="'badge badge-' + statutClass(c.statut)">{{ c.statut }}</span>
+            </td>
+            <td class="td-date">{{ formatDate(c.date) }}</td>
+            <td>
+              <a *ngIf="c.gmail_link" [href]="c.gmail_link" target="_blank" class="gmail-link">✉</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+  </div>
 
-    <!-- Skeleton -->
-    <div class="skeleton-list" *ngIf="loading && !syncing">
-      <div class="skeleton-card" *ngFor="let i of [1,2,3,4]"></div>
-    </div>
-
-    <!-- Tableau -->
-    <div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>ENTREPRISE</th>
-              <th>POSTE</th>
-              <th>STATUT</th>
-              <th>VILLE</th>
-              <th>DATE</th>
-              <th>EXPÉDITEUR</th>
-              <th>LIEN</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let c of filtered" [class]="'row-' + statutClass(c.statut)">
-
-              <!-- Entreprise -->
-              <td>
-                <div class="cell-entreprise">
-                  <div class="row-avatar">{{ initial(c.entreprise) }}</div>
-                  <span class="td-truncate" [title]="c.entreprise">{{ c.entreprise }}</span>
-                </div>
-              </td>
-
-              <!-- Poste -->
-              <td class="td-truncate" [title]="c.poste">{{ c.poste }}</td>
-
-              <!-- Statut -->
-              <td>
-                <span [class]="'badge badge-' + statutClass(c.statut)">{{ c.statut }}</span>
-              </td>
-
-              <!-- Ville -->
-              <td>{{ c.ville || '—' }}</td>
-
-              <!-- Date -->
-              <td class="td-date">{{ formatDate(c.date) }}</td>
-
-              <!-- Expéditeur -->
-              <td class="td-truncate td-muted" [title]="c.expediteur">
-                {{ senderName(c.expediteur) }}
-              </td>
-
-              <!-- Lien Gmail -->
-              <td>
-                <a *ngIf="c.gmail_link" [href]="c.gmail_link" target="_blank" class="gmail-link"
-                   title="Ouvrir dans Gmail">✉</a>
-                <span *ngIf="!c.gmail_link">—</span>
-              </td>
-
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Empty -->
-    <div class="empty-state" *ngIf="!loading && filtered.length === 0">
-      <div class="empty-icon">📭</div>
-      <span>Aucune candidature{{ activeStatut !== 'Tous' ? ' pour ce statut' : '' }}</span>
-    </div>
-
-  </ng-container>
+  <!-- Empty -->
+  <div class="empty-state" *ngIf="!loading && filtered.length === 0">
+    <div class="empty-icon">📭</div>
+    <span>Aucune candidature trouvée.</span>
+  </div>
 
 </div>

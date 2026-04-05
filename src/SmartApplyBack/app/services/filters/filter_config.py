@@ -1,32 +1,26 @@
 """
 filter_config.py
 ----------------
-Constantes partagées par prefilter.py et deep_filter.py.
-Modifier ici pour affiner les filtres sans toucher à la logique.
+Toutes les constantes lisent d'abord le .env, avec valeurs par défaut.
 """
-
 import os
+from dotenv import load_dotenv
 
-TIMEOUT_HTTP = 6      # secondes max par requête
-PAUSE        = 0.3    # pause entre chaque domaine (politeness)
-CONCURRENCY  = 10     # workers async simultanés (deep_filter)
+load_dotenv()
+
+TIMEOUT_HTTP = int(os.getenv("TIMEOUT_HTTP", "6"))
+PAUSE        = float(os.getenv("PAUSE", "0.3"))
+CONCURRENCY  = int(os.getenv("CONCURRENCY", "10"))
 HTTP_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; ResearchBot/1.0)"}
 
-# ─── SEUILS DE SCORE ─────────────────────────────────────────
-
-MIN_PRESCORE   = 4    # score minimum pour passer au deep filter
-MIN_DEEP_SCORE = 5    # score minimum pour passer au scoring Gemini
-
-# ─── MOTS BLACKLISTÉS (hors cible IT) ────────────────────────
+MIN_PRESCORE   = int(os.getenv("MIN_PRESCORE", "4"))
+MIN_DEEP_SCORE = int(os.getenv("MIN_DEEP_SCORE", "5"))
 
 BLACKLIST = [
-    # Santé / médical
     "dentaire", "dental", "médecin", "clinique", "pharmacie",
     "kinésithérapie", "ophtalmo", "cabinet médical", "infirmier",
-    # BTP / rénovation
     "rénovation", "renovation", "plomberie", "électricité", "maçon",
     "peinture", "carrelage", "toiture", "bâtiment", "construction",
-    # Autres hors cible
     "coiffure", "restaurant", "boulangerie", "immobilier", "assurance",
     "notaire", "avocat", "comptable", "expert-comptable",
     "école primaire", "collège", "lycée", "maternelle",
@@ -34,27 +28,18 @@ BLACKLIST = [
     "salon de beauté", "esthétique", "massage",
 ]
 
-# ─── MOTS-CLÉS IT POSITIFS ───────────────────────────────────
-# Utilisés dans prefilter (pré-score) ET deep_filter (offres carrières).
-
 IT_KEYWORDS = [
-    # Stack ciblée
     ".net", "c#", "react", "vue", "angular", "typescript",
     "asp.net", "blazor", "azure", "dotnet",
-    # Général IT
     "développement", "development", "software", "logiciel",
     "informatique", "digital", "numérique", "cloud", "devops",
     "fullstack", "full-stack", "backend", "frontend",
     "application", "web app", "saas", "api", "microservices",
-    # ESN / SSII
     "esn", "ssii", "consulting", "conseil it", "it services",
     "régie", "forfait", "mission", "prestataire", "outsourcing",
-    # Métiers (utilisés aussi pour détecter les offres IT)
     "développeur", "developer", "ingénieur logiciel", "software engineer",
     "architecte",
 ]
-
-# ─── CHEMINS CARRIÈRES À TESTER ──────────────────────────────
 
 CAREER_PATHS = [
     "/carrieres", "/carrières", "/recrutement", "/rejoindre-nous",
@@ -62,8 +47,6 @@ CAREER_PATHS = [
     "/careers", "/work-with-us", "/join-us", "/hiring",
     "/join", "/team", "/equipe",
 ]
-
-# ─── FOURNISSEURS MX CONNUS ──────────────────────────────────
 
 MX_PROVIDERS = {
     "google"   : "Google Workspace",
@@ -73,12 +56,19 @@ MX_PROVIDERS = {
     "ovh"      : "OVH",
 }
 
-# filter_config.py
+CITY_COUNTRY_MAP = {
+    "Toulouse" : "FR",
+    "Brussels" : "BE",
+    "Namur"    : "BE",
+    "Bruxelles": "BE",
+}
 
-def get_input_path(city: str, base_dir: str = "results") -> str:
-    """Retourne le chemin du fichier scraping pour une ville."""
-    return os.path.join(base_dir, f"scraping_results_{city.lower()}.json")
-
-def get_output_path(city: str, base_dir: str = "results") -> str:
-    """Retourne le chemin du fichier prefiltered pour une ville."""
-    return os.path.join(base_dir, f"filter_results_{city.lower()}.json")
+SECTORS = [
+    "informatique", "développement logiciel", "agence web",
+    "startup tech", "cybersécurité", "intelligence artificielle",
+    "cloud computing", "édition logiciel", "conseil digital",
+    "transformation digitale", "fintech", "ESN", "SSII",
+    "software development", "web agency", "tech startup",
+    "digital consulting", "digital transformation",
+    "IT services", "IT consulting", "technology",
+]

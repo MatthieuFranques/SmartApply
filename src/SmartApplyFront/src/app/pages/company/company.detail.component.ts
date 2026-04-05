@@ -8,7 +8,7 @@ import { HttpClient } from '@angular/common/http';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './company.detail.component.html',
-  styleUrls: ['./company.detail.component.css']
+  styleUrls: ['./company.detail.component.scss']
 })
 export class CompanyDetailComponent implements OnChanges {
   @Input()  company : any = null;

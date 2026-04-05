@@ -1,0 +1,44 @@
+@use '../../core/styles/shared' as *;
+
+.city-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.city-chip {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { border-color: var(--text); color: var(--text); }
+
+  &.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+
+  &.all.active {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #fff;
+  }
+}
