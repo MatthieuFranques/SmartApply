@@ -37,7 +37,9 @@ jobs:
         working-directory: ./src/SmartApplyBack
         env:
           PYTHONPATH: .
-          ENV: development 
+          ENV: development
+          SECRET_KEY: "test_secret_key_github_actions"
+          ALGORITHM: "HS256"
         run: |
           pytest \
             --cov=. \
