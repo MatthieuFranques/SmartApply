@@ -17,7 +17,7 @@ def override_get_current_user():
         access_token="fake_access_token",
         refresh_token="fake_refresh_token",  # Ajouté
         token_expiry=3600,                   # Ajouté (un int ou float selon ton modèle)
-        picture="http://example.com/p.jpg",  # Ajoute aussi picture et scopes si Pydantic râle encore
+        picture="https://example.com/p.jpg",  # Ajoute aussi picture et scopes si Pydantic râle encore
         scopes=["https://www.googleapis.com/auth/gmail.readonly"]
     )
 

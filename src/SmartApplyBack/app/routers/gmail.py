@@ -20,10 +20,8 @@ def gmail_auth():
 @router.get("/callback")
 def gmail_callback(code: str = Query(...)):
     try:
-        # 1. On échange le code contre les infos Google
         user_info, tokens = exchange_code_for_user(code)
 
-        # 2. ON ENREGISTRE DANS LA BASE (C'est cette ligne qui remplit ta DB)
         user = UserRepository().upsert(
             google_id     = user_info["sub"],
             email         = user_info["email"],
@@ -35,27 +33,30 @@ def gmail_callback(code: str = Query(...)):
             scopes        = tokens["scopes"],
         )
 
-        # 3. On crée le JWT pour la session
         jwt_token = create_jwt(user.google_id)
         
-        # 4. On redirige vers Angular avec le cookie
-        response = RedirectResponse(url="http://localhost:4200")
+
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
+        response = RedirectResponse(url=frontend_url)
+        
+        # On vérifie si on est en production
+        is_prod = os.getenv("ENV", "development") == "production"
         
         response.set_cookie(
             key      = "session",
             value    = jwt_token,
             httponly = True,
             samesite = "lax",
-            secure   = False,  # False car on est en HTTP local
+            secure   = is_prod,
             max_age  = 7 * 24 * 3600,
         )
-        print(f"✅ Utilisateur {user.email} enregistré et redirigé.")
+        print(f"Utilisateur {user.email} enregistré et redirigé.")
         return response
 
     except Exception as e:
         print(f"❌ Erreur lors du callback: {e}")
-        return RedirectResponse(url="http://localhost:4200?error=auth_failed")
-
+        error_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:4200')}?error=auth_failed"
+        return RedirectResponse(url=error_url)
 
 
 @router.get("/messages", response_model=list[GmailMessage])
