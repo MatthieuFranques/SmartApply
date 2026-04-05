@@ -17,5 +17,5 @@ export class CityFiltersComponent {
   @Input() cities: CityCount[] = [];
   @Input() selected = 'all';
   @Input() total = 0;
-  @Output() select = new EventEmitter<string>();
+  @Output() citySelected = new EventEmitter<string>();
 }

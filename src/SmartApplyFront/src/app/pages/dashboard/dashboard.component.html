@@ -45,12 +45,11 @@
 
       <app-stats-bar *ngIf="companies.length" [stats]="statItems"></app-stats-bar>
 
-      <app-city-filters
-        [cities]="cityItems"
-        [selected]="selectedCity"
-        [total]="companies.length"
-        (select)="filterByCity($event)">
-      </app-city-filters>
+     <app-city-filters
+  [cities]="cityItems"
+  [selected]="selectedCity"
+  [total]="companies.length"
+  (citySelected)="filterByCity($event)"> </app-city-filters>
 
       <app-company-table
         [companies]="filteredCompanies"

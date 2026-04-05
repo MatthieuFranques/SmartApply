@@ -176,7 +176,7 @@ tbody tr {
   background: linear-gradient(135deg, var(--accent2), #8b5cf6);
   display: flex; align-items: center; justify-content: center;
   @include mono(13px);
-  font-weight: 700; color: #fff;
+  font-weight: 700;
 }
 
 // ─── Badges statut ───────────────────────────────────────────
@@ -190,7 +190,7 @@ tbody tr {
 
   &.badge-attente   { background: rgba(74,80,104,.2);   color: var(--muted);   border: 1px solid var(--border); }
   &.badge-entretien { background: rgba(0,229,160,.12);  color: var(--accent);  border: 1px solid rgba(0,229,160,.25); }
-  &.badge-offre     { background: rgba(168,85,247,.12); color: #a855f7;        border: 1px solid rgba(168,85,247,.25); }
+  &.badge-offre     { background: rgba(168,85,247,.12); color: var(--muted);        border: 1px solid rgba(168,85,247,.25); }
   &.badge-decision  { background: rgba(255,170,0,.12);  color: var(--warning); border: 1px solid rgba(255,170,0,.25); }
   &.badge-refuse    { background: rgba(255,68,85,.12);  color: var(--danger);  border: 1px solid rgba(255,68,85,.25); }
 }

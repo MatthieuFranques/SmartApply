@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -15,7 +15,7 @@ export class CompanyDetailComponent implements OnChanges {
   @Output() closed         = new EventEmitter<void>();
   @Output() deleted        = new EventEmitter<string>();
 
-  private api = 'http://localhost:8000';
+  private readonly api = 'http://localhost:8000';
 
   visible           = false;
 
@@ -30,7 +30,7 @@ export class CompanyDetailComponent implements OnChanges {
   letterError       = '';
   copied            = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   ngOnChanges() {
     this.visible = !!this.company;
@@ -42,6 +42,12 @@ export class CompanyDetailComponent implements OnChanges {
     this.copied            = false;
   }
 
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscape(event: KeyboardEvent) {
+    if (this.visible) {
+      this.close();
+    }
+  }
   close() {
     this.visible = false;
     setTimeout(() => this.closed.emit(), 300);

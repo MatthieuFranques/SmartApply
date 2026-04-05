@@ -39,12 +39,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   authenticated : boolean = false;
   authChecking  : boolean = true;
-  currentUser   : { email: string; name: string } | null = null;
+  currentUser: { email: string; name: string } | null = null;  
+  private readonly api = 'http://localhost:8000';
+  private readonly sub?: Subscription;
 
-  private api = 'http://localhost:8000';
-  private sub?: Subscription;
-
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   ngOnInit():    void { this.checkAuth(); }
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
@@ -66,7 +65,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  connectGmail(): void { window.location.href = `${this.api}/gmail/auth`; }
+  connectGmail(): void { globalThis.location.href = `${this.api}/gmail/auth`; }
 
   logout(): void {
     this.http.post(`${this.api}/gmail/logout`, {}, { withCredentials: true }).subscribe({

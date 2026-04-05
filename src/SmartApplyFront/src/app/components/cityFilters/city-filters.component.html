@@ -1,14 +1,10 @@
 <div class="city-filters" *ngIf="cities.length > 1">
-  <span class="filter-label">Ville</span>
-  <button class="city-chip all"
-          [class.active]="selected === 'all'"
-          (click)="select.emit('all')">
-    Toutes ({{ total }})
+  <button type="button"
+          (click)="citySelected.emit('all')"> Toutes ({{ total }})
   </button>
-  <button *ngFor="let c of cities"
-          class="city-chip"
-          [class.active]="selected === c.name"
-          (click)="select.emit(c.name)">
-    {{ c.name }} ({{ c.count }})
+
+  <button type="button"
+          *ngFor="let c of cities"
+          (click)="citySelected.emit(c.name)"> {{ c.name }} ({{ c.count }})
   </button>
 </div>

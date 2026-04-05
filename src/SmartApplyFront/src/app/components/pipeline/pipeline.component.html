@@ -1,6 +1,5 @@
 <div class="pipeline-container">
 
-  <!-- ── Config ── -->
   <div class="pipeline-config" *ngIf="!running && !done">
     <div class="config-field">
       <label>
@@ -13,7 +12,6 @@
     </button>
   </div>
 
-  <!-- ── Phases ── -->
   <div class="phases" *ngIf="running || done">
     <div class="phase-track">
       <div *ngFor="let p of phases"
@@ -44,7 +42,6 @@
     </div>
   </div>
 
-  <!-- ── Live feed ── -->
   <div class="feed" *ngIf="events.length > 0">
     <div class="feed-header">
       <span>LIVE FEED</span>

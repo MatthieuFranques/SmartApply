@@ -58,7 +58,7 @@ export class PipelineComponent implements OnDestroy {
 
   private sub?: Subscription;
 
-  constructor(private pipeline: PipelineService) {}
+  constructor(private readonly pipeline: PipelineService) {}
 
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
 
@@ -100,34 +100,54 @@ export class PipelineComponent implements OnDestroy {
     this.running = false;
   }
 
-  private handleEvent(e: StreamEvent): void {
+private handleEvent(e: StreamEvent): void {
+    // 1. Gestion des changements d'état globaux (Phase / Fin)
+    if (this.isStateChange(e)) return;
+
     const phase = e.phase || this.currentPhase;
 
-    if (e.type === 'phase') {
-      this.currentPhase = e.phase!;
-      return;
+    // 2. Mise à jour des compteurs (Stats)
+    if (phase && this.stats[phase]) {
+      this.updatePhaseStats(phase, e);
     }
 
+    // 3. Gestion de la liste des événements visuels
+    this.addVisibleEvent(e, phase);
+  }
+
+  private isStateChange(e: StreamEvent): boolean {
+    if (e.type === 'phase') {
+      this.currentPhase = e.phase!;
+      return true;
+    }
     if (e.type === 'pipeline_done') {
-      this.done    = true;
+      this.done = true;
       this.running = false;
       this.events.unshift(e);
       this.pipelineDone.emit();
-      return;
+      return true;
     }
+    return false;
+  }
 
-    if (phase && this.stats[phase]) {
-      if (e.type === 'company')                             this.stats[phase].found++;
-      if (e.type === 'result' && e.status === 'kept')      this.stats[phase].kept++;
-      if (e.type === 'result' && e.status === 'ok')        this.stats[phase].kept++;
-      if (e.type === 'result' && e.status === 'eliminated') this.stats[phase].eliminated++;
-      if (e.type === 'result' && e.status === 'error')     this.stats[phase].errors++;
+  private updatePhaseStats(phase: string, e: StreamEvent): void {
+    const s = this.stats[phase];
+    if (e.type === 'company') s.found++;
+    
+    if (e.type === 'result') {
+      if (['kept', 'ok'].includes(e.status!)) s.kept++;
+      else if (e.status === 'eliminated') s.eliminated++;
+      else if (e.status === 'error') s.errors++;
     }
+  }
 
-    const visible = ['company', 'result', 'done', 'error', 'city', 'pipeline_done'];
-    if (visible.includes(e.type)) {
+  private addVisibleEvent(e: StreamEvent, phase: string): void {
+    const visibleTypes = ['company', 'result', 'done', 'error', 'city', 'pipeline_done'];
+    if (visibleTypes.includes(e.type)) {
       this.events.unshift({ ...e, phase });
-      if (this.events.length > 200) this.events.pop();
+      if (this.events.length > 200) {
+        this.events.pop();
+      }
     }
   }
 

@@ -1,6 +1,5 @@
 <div class="applications-container">
 
-  <!-- Header -->
   <div class="applications-header">
     <div class="header-left">
       <h2>MES CANDIDATURES</h2>
@@ -16,10 +15,8 @@
     </div>
   </div>
 
-  <!-- Stats — même composant que le dashboard -->
   <app-stats-bar *ngIf="candidatures.length" [stats]="statItems"></app-stats-bar>
 
-  <!-- Filtres -->
   <div class="filter-bar">
     <button *ngFor="let s of statuts"
             class="filter-btn"
@@ -29,19 +26,16 @@
     </button>
   </div>
 
-  <!-- Banners -->
   <div class="syncing-banner" *ngIf="syncing">
     <div class="spinner-sm"></div>
     Synchronisation Gmail en cours...
   </div>
   <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
 
-  <!-- Skeleton -->
   <div class="skeleton-list" *ngIf="loading">
     <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5]"></div>
   </div>
 
-  <!-- Tableau -->
   <div class="table-wrapper" *ngIf="!loading && filtered.length > 0">
     <div class="table-scroll">
       <table>
@@ -76,7 +70,6 @@
     </div>
   </div>
 
-  <!-- Empty -->
   <div class="empty-state" *ngIf="!loading && filtered.length === 0">
     <div class="empty-icon">📭</div>
     <span>Aucune candidature trouvée.</span>

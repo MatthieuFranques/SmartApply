@@ -20,7 +20,6 @@
   font-size: $size;
 }
 
-// Bouton style "surface" — utilisé par scrape / filter / enrich
 @mixin btn-surface {
   @include mono;
   font-weight: 700;

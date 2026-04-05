@@ -47,9 +47,9 @@ export class ApplicationsComponent implements OnInit {
   statuts    = ['Tous', 'En attente', 'Entretien', 'Offre reçue', 'Décision requise', 'Refusé'];
   activeStatut = 'Tous';
 
-  private api = 'http://localhost:8000';
+  private readonly api = 'http://localhost:8000';
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   ngOnInit(): void { this.init(); }
 
@@ -131,7 +131,7 @@ export class ApplicationsComponent implements OnInit {
   }
 
   countByStatut(s: string): number { return this.candidatures.filter(c => c.statut === s).length; }
-  senderName(e: string):    string { return e?.match(/^([^<]+)/)?.[1].trim() ?? e; }
+  senderName(e: string):    string { return new RegExp(/^([^<]+)/).exec(e)?.[1].trim() ?? e; }
   initial(ent: string):     string { return ent?.charAt(0)?.toUpperCase() ?? '?'; }
   formatDate(iso: string):  string { return iso ? new Date(iso).toLocaleDateString('fr-FR') : '—'; }
 

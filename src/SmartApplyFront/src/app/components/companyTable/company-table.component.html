@@ -8,8 +8,11 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let c of companies" (click)="rowClick.emit(c)">
-          <td class="td-truncate" [title]="c.nom">{{ c.nom || '—' }}</td>
+<tr *ngFor="let c of companies" 
+    (click)="rowClick.emit(c)"
+    (keydown.enter)="rowClick.emit(c)"
+    tabindex="0">          
+    <td class="td-truncate" [title]="c.nom">{{ c.nom || '—' }}</td>
           <td>
             <a [href]="'https://' + c.domaine" target="_blank"
                (click)="$event.stopPropagation()">{{ c.domaine || '—' }}</a>
