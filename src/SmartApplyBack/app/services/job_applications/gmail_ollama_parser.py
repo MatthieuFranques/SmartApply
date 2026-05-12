@@ -344,8 +344,9 @@ def should_upgrade_statut(ancien: str, nouveau: str) -> bool:
 _cache: dict[str, dict] = {}
 
 
-def _get_parsed(sender: str, subject: str, body: str) -> dict:
-    key = f"{sender[:50]}|{subject[:80]}"
+def _get_parsed(sender: str, subject: str, body: str, msg_id: str = "") -> dict:
+    # L'ID du message Gmail est la seule source de vérité absolue pour l'unicité
+    key = msg_id if msg_id else f"{sender[:30]}|{subject[:50]}"
     if key not in _cache:
         _cache[key] = parse_email(sender, subject, body)
     return _cache[key]

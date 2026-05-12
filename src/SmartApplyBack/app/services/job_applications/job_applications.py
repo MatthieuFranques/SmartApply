@@ -60,26 +60,30 @@ def sync_candidatures(
     creds   = Credentials(token=access_token)
     service = build("gmail", "v1", credentials=creds)
 
-    existing     = repo.find_by_user(user_id)
-    existing_map = {item["thread_id"]: item for item in existing}   # ← dict pour accès rapide
-    last_sync    = None if force_full else repo.get_last_sync(user_id)
+    # Récupération de l'existant (on s'assure que c'est une liste de dicts)
+    existing = repo.find_by_user(user_id) or []
+    last_sync = None if force_full else repo.get_last_sync(user_id)
 
     # Résolution du label Gmail
     labels_resp = service.users().labels().list(userId="me").execute()
-    label_id    = next(
+    label_id = next(
         (l["id"] for l in labels_resp.get("labels", [])
          if l["name"].lower() == GMAIL_LABEL.lower()),
         None,
     )
+    
     if not label_id:
         raise ValueError(f"Libellé '{GMAIL_LABEL}' introuvable dans Gmail")
 
-    query = f"after:{int(last_sync.timestamp())}" if last_sync else ""
+    # Sécurisation de la query de date
+    query = ""
+    if last_sync and hasattr(last_sync, 'timestamp'):
+        query = f"after:{int(last_sync.timestamp())}"
 
     messages_resp = service.users().messages().list(
-        userId    ="me",
-        labelIds  =[label_id],
-        q         =query,
+        userId="me",
+        labelIds=[label_id],
+        q=query,
         maxResults=MAX_RESULTS,
     ).execute()
 
@@ -88,76 +92,82 @@ def sync_candidatures(
     nouvelles  = 0
     maj        = 0
     ignorees   = 0
-    sans_poste = 0  # gardé pour compatibilité SyncResult mais ne jette plus d'emails
+    sans_poste = 0
 
     for msg in messages:
-        raw = service.users().messages().get(
-            userId="me", id=msg["id"], format="full"
-        ).execute()
+        try:
+            raw = service.users().messages().get(
+                userId="me", id=msg["id"], format="full"
+            ).execute()
 
-        headers     = {h["name"]: h["value"] for h in raw.get("payload", {}).get("headers", [])}
-        subject     = headers.get("Subject", "")
-        sender      = headers.get("From", "")
-        date_str    = headers.get("Date", "")
-        body        = _decode_body(raw.get("payload", {}))
-        thread_id   = raw.get("threadId", msg["id"])
-        gmail_link  = f"https://mail.google.com/mail/u/0/#inbox/{thread_id}"
+            headers     = {h["name"]: h["value"] for h in raw.get("payload", {}).get("headers", [])}
+            subject     = headers.get("Subject", "")
+            sender      = headers.get("From", "")
+            date_str    = headers.get("Date", "")
+            body        = _decode_body(raw.get("payload", {}))
+            thread_id   = raw.get("threadId", msg["id"])
+            gmail_link  = f"https://mail.google.com/mail/u/0/#inbox/{thread_id}"
 
-        received_at = ""
-        if date_str:
-            try:
-                received_at = parsedate_to_datetime(date_str).isoformat()
-            except Exception:
-                received_at = date_str
+            received_at = ""
+            if date_str:
+                try:
+                    received_at = parsedate_to_datetime(date_str).isoformat()
+                except:
+                    received_at = date_str
 
-        # ── Filtre spam/alertes ──
-        raison = should_ignore(subject, body, sender)
-        if raison:
-            ignorees += 1
-            logger.debug("[IGNORÉ] %s | raison: %s", subject[:60], raison)
+            # ── 1. Filtre Spam/Alertes ──
+            raison = should_ignore(subject, body, sender)
+            if raison:
+                ignorees += 1
+                logger.info(f"[IGNORÉ] {subject[:40]} | Raison: {raison}")
+                continue
+
+            # ── 2. Extraction des données ──
+            entreprise = extract_entreprise(sender, subject, body)
+            poste      = extract_poste(subject, body, sender)
+            statut     = detect_statut(subject, body, sender)
+            ville      = extract_ville(body, subject, sender)
+
+            # ── 3. Logique de Doublon (Entreprise + Poste) ──
+            # On utilise .get() partout pour éviter les KeyError qui causent des 500
+            match_existant = next(
+                (item for item in existing 
+                 if str(item.get("entreprise", "")).lower() == entreprise.lower() 
+                 and str(item.get("poste", "")).lower() == poste.lower()), 
+                None
+            )
+
+            if match_existant:
+                ancien_statut = match_existant.get("statut", "En attente")
+                if should_upgrade_statut(ancien_statut, statut):
+                    # Mise à jour du statut en base
+                    repo.update_statut(user_id, match_existant.get("thread_id"), statut, received_at, ville)
+                    match_existant["statut"] = statut
+                    maj += 1
+                    logger.info(f"[MAJ] {entreprise} : {ancien_statut} -> {statut}")
+            else:
+                # Nouvelle candidature
+                item = {
+                    "user_id":    user_id,
+                    "thread_id":  thread_id,
+                    "entreprise": entreprise,
+                    "poste":      poste,
+                    "statut":     statut,
+                    "ville":      ville,
+                    "date":       received_at,
+                    "expediteur": sender,
+                    "gmail_link": gmail_link,
+                }
+                repo.save(item)
+                existing.append(item)
+                nouvelles += 1
+                logger.info(f"[NOUVEAU] {entreprise} - {poste}")
+
+        except Exception as e:
+            logger.error(f"Erreur lors du traitement d'un message Gmail: {str(e)}")
             continue
 
-        # ── Extraction ──
-        entreprise = extract_entreprise(sender, subject, body)
-        poste      = extract_poste(subject, body, sender)
-        statut     = detect_statut(subject, body, sender)
-        ville      = extract_ville(body, subject, sender)
-
-        # ── Thread déjà connu → mise à jour intelligente du statut ──
-        if thread_id in existing_map:
-            ancien_statut = existing_map[thread_id].get("statut", "En attente")
-
-            # On met à jour uniquement si le nouveau statut est plus important
-            if should_upgrade_statut(ancien_statut, statut):
-                repo.update_statut(user_id, thread_id, statut, received_at, ville)
-                existing_map[thread_id]["statut"] = statut
-                logger.info(
-                    "[MAJ] %s | %s → %s", subject[:50], ancien_statut, statut
-                )
-                maj += 1
-            else:
-                logger.debug(
-                    "[SKIP MAJ] %s | statut conservé: %s (nouveau: %s)",
-                    subject[:50], ancien_statut, statut,
-                )
-        else:
-            # ── Nouveau thread ──
-            item = {
-                "user_id":    user_id,
-                "thread_id":  thread_id,
-                "entreprise": entreprise,
-                "poste":      poste,
-                "statut":     statut,
-                "ville":      ville,
-                "date":       received_at,
-                "expediteur": sender,
-                "gmail_link": gmail_link,
-            }
-            repo.save(item)
-            existing_map[thread_id] = item
-            nouvelles += 1
-            logger.info("[NOUVEAU] %s | %s @ %s | %s", subject[:50], poste, entreprise, statut)
-
+    # Mise à jour de la date de dernière sync
     sync_time = repo.set_last_sync(user_id)
     clear_cache()
 
@@ -167,9 +177,8 @@ def sync_candidatures(
         mises_a_jour=maj,
         ignorees=ignorees,
         sans_poste=sans_poste,
-        derniere_sync=sync_time,
+        derniere_sync=sync_time if isinstance(sync_time, str) else str(sync_time),
     )
-
 
 def load_history(user_id: str, repo) -> list:
     return repo.find_by_user(user_id)
