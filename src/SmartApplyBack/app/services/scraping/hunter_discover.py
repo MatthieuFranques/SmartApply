@@ -1,30 +1,28 @@
-import os, sys
-sys.path.insert(0, os.path.dirname(__file__))
-
 import requests
-from scraping_config import HUNTER_API_KEY, CITY_COUNTRY_MAP
+from app.services.scraping.scraping_config import HUNTER_API_KEY, get_country
 
 
-def discover_companies(sector: str, city: str, max_results: int = 100, country: str = "FR") -> list:
+def discover_companies(
+    sector: str,
+    city: str,
+    max_results: int = 100,
+    keyword_match: str = "any",
+) -> list:
     """
-    Recherche des entreprises via /discover avec pagination.
-    Contourne la limite de 100 par appel en faisant plusieurs pages.
-    Chaque appel est GRATUIT.
+    Fetch companies via Hunter /discover with pagination.
+    Each call is free on Hunter.io.
 
-    Paramètres :
-        sector      : secteur ciblé
-        city        : ville ciblée
-        max_results : nombre max d'entreprises à récupérer (défaut 100)
-        country     : code pays par défaut si la ville n'est pas dans CITY_COUNTRY_MAP
-
-    Retourne :
-        Liste de dicts bruts Hunter.
+    Args:
+        sector:        search keywords (space-separated)
+        city:          target city
+        max_results:   max companies to retrieve
+        keyword_match: "any" or "all" (Hunter keyword matching strategy)
     """
-    url     = "https://api.hunter.io/v2/discover"
-    country = CITY_COUNTRY_MAP.get(city, country)
+    url         = "https://api.hunter.io/v2/discover"
+    country     = get_country(city)
     all_results = []
     offset      = 0
-    limit       = 100  # max par appel selon la doc Hunter
+    limit       = 100  # Hunter max per call
 
     while len(all_results) < max_results:
         payload = {
@@ -33,9 +31,9 @@ def discover_companies(sector: str, city: str, max_results: int = 100, country: 
             },
             "keywords": {
                 "include": sector.split(),
-                "match"  : "any"
+                "match":   keyword_match,
             },
-            "limit" : limit,
+            "limit":  min(limit, max_results - len(all_results)),
             "offset": offset,
         }
 
@@ -51,16 +49,16 @@ def discover_companies(sector: str, city: str, max_results: int = 100, country: 
             results = response.json().get("data", [])
 
             if not results:
-                break  # plus de résultats disponibles
+                break
 
             all_results.extend(results)
             offset += len(results)
 
             if len(results) < limit:
-                break  # dernière page atteinte
+                break
 
         except Exception as e:
-            print(f"  [Discover] Erreur page offset={offset} : {e}")
+            print(f"  [Discover] Error at offset={offset}: {e}")
             break
 
     return all_results[:max_results]

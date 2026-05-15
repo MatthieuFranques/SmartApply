@@ -1,22 +1,34 @@
 import { Injectable } from '@angular/core';
 import { concat, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators'; // Indispensable pour le console.log
+import { tap } from 'rxjs/operators';
+
+export interface ScrapingParams {
+  cities:        string[];
+  sectors:       string[];
+  maxResults:    number;
+  keywordMatch:  'any' | 'all';
+}
 
 @Injectable({ providedIn: 'root' })
 export class PipelineService {
-  private readonly  api = 'http://localhost:8000';
+  private readonly api = 'http://localhost:8000';
 
-  runFullPipeline(cities: string[]): Observable<any> {
-    // concat attend la complétion de l'Observable précédent pour lancer le suivant
+  runFullPipeline(params: ScrapingParams): Observable<any> {
     return concat(
-      this.streamScraping(cities).pipe(tap(res => console.log('✅ Scraping event:', res))),
-      this.streamFilter().pipe(tap(res => console.log('✅ Filter event:', res))),
-      this.streamEnrich().pipe(tap(res => console.log('✅ Enrich event:', res)))
+      this.streamScraping(params).pipe(tap(res => console.log('Scraping event:', res))),
+      this.streamFilter().pipe(tap(res => console.log('Filter event:', res))),
+      this.streamEnrich().pipe(tap(res => console.log('Enrich event:', res))),
     );
   }
 
-  streamScraping(cities: string[]): Observable<any> {
-    return this._sse(`${this.api}/scraping/stream?cities=${cities.join(',')}`);
+  streamScraping(params: ScrapingParams): Observable<any> {
+    const p = new URLSearchParams({
+      cities:        params.cities.join(','),
+      sectors:       params.sectors.join(','),
+      max_results:   params.maxResults.toString(),
+      keyword_match: params.keywordMatch,
+    });
+    return this._sse(`${this.api}/scraping/stream?${p}`);
   }
 
   streamFilter(): Observable<any> {
@@ -27,6 +39,15 @@ export class PipelineService {
     return this._sse(`${this.api}/enrich/stream`);
   }
 
+  getScrapingConfig(): Observable<{ default_sectors: string[]; supported_cities: string[] }> {
+    return new Observable(observer => {
+      fetch(`${this.api}/scraping/config`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => { observer.next(data); observer.complete(); })
+        .catch(err => observer.error(err));
+    });
+  }
+
   private _sse(url: string): Observable<any> {
     return new Observable(observer => {
       const es = new EventSource(url, { withCredentials: true });
@@ -35,27 +56,20 @@ export class PipelineService {
         try {
           const data = JSON.parse(event.data);
           observer.next(data);
-
-          // TRÈS IMPORTANT : Le signal de fin envoyé par ton FastAPI
-          // Si tu ne fermes pas ici, le 'concat' attendra indéfiniment.
           if (data.type === 'done') {
-            console.log(`🔚 Fin de flux détectée pour : ${url}`);
             es.close();
             observer.complete();
           }
-        } catch (err) {
-          console.error("Erreur de parsing JSON sur le flux SSE", err);
+        } catch {
+          // ignore parse errors
         }
       };
 
-      es.onerror = (err) => {
-        // En cas d'erreur réseau ou de fermeture par le serveur
-        console.log("Flux SSE clos ou terminé.");
+      es.onerror = () => {
         es.close();
         observer.complete();
       };
 
-      // Se déclenche si l'utilisateur annule (unsubscribe)
       return () => es.close();
     });
   }

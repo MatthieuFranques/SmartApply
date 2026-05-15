@@ -1,17 +1,93 @@
 <div class="pipeline-container">
 
+  <!-- ── Config panel ── -->
   <div class="pipeline-config" *ngIf="!running && !done">
-    <div class="config-field">
-      <label>
-      <input [(ngModel)]="city" placeholder="Toulouse, Brussels..." />
-        VILLE(S)
-      </label>
+
+    <!-- Cities -->
+    <div class="config-section">
+      <div class="config-label">VILLES <span class="config-count">{{ cities.length }}</span></div>
+      <div class="tag-input-wrap">
+        <div class="tag-list" *ngIf="cities.length">
+          <span class="config-tag" *ngFor="let c of cities">
+            {{ c }}
+            <button class="tag-remove" (click)="removeCity(c)">×</button>
+          </span>
+        </div>
+        <div class="city-input-row">
+          <input
+            class="config-input"
+            [(ngModel)]="cityInput"
+            (keydown.enter)="addCity()"
+            placeholder="Ajouter une ville et appuyer sur Entrée..."
+            list="cities-list"
+          />
+          <datalist id="cities-list">
+            <option *ngFor="let c of supportedCities" [value]="c"></option>
+          </datalist>
+          <button class="btn-add" (click)="addCity()" [disabled]="!cityInput.trim()">+</button>
+        </div>
+      </div>
     </div>
-    <button class="btn-launch" (click)="launch()">
+
+    <!-- Sectors -->
+    <div class="config-section">
+      <div class="config-label-row">
+        <span class="config-label">SECTEURS <span class="config-count">{{ activeSectors.length }}/{{ allSectors.length }}</span></span>
+        <div class="sector-actions">
+          <button class="btn-text" (click)="selectAllSectors()">Tout</button>
+          <button class="btn-text" (click)="clearAllSectors()">Aucun</button>
+        </div>
+      </div>
+      <div class="sectors-grid">
+        <button
+          class="sector-chip"
+          *ngFor="let s of allSectors"
+          [class.active]="activeSectors.includes(s)"
+          (click)="toggleSector(s)">
+          {{ s }}
+        </button>
+      </div>
+      <div class="custom-input-row">
+        <input
+          class="config-input"
+          [(ngModel)]="customSector"
+          (keydown.enter)="addCustomSector()"
+          placeholder="Secteur personnalisé..."
+        />
+        <button class="btn-add" (click)="addCustomSector()" [disabled]="!customSector.trim()">+</button>
+      </div>
+    </div>
+
+    <!-- Advanced params -->
+    <div class="config-section config-advanced">
+      <div class="advanced-row">
+        <div class="advanced-field">
+          <div class="config-label">RÉSULTATS MAX <span class="config-count">{{ maxResults }}</span></div>
+          <input type="range" [(ngModel)]="maxResults" min="10" max="300" step="10" class="range-input" />
+          <div class="range-labels"><span>10</span><span>300</span></div>
+        </div>
+        <div class="advanced-field">
+          <div class="config-label">MODE MOTS-CLÉS</div>
+          <div class="toggle-group">
+            <button class="toggle-btn" [class.active]="keywordMatch === 'any'" (click)="keywordMatch = 'any'">ANY</button>
+            <button class="toggle-btn" [class.active]="keywordMatch === 'all'" (click)="keywordMatch = 'all'">ALL</button>
+          </div>
+          <div class="toggle-hint">
+            <span *ngIf="keywordMatch === 'any'">Au moins un mot-clé présent</span>
+            <span *ngIf="keywordMatch === 'all'">Tous les mots-clés présents</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-launch" (click)="launch()" [disabled]="!canLaunch">
       ▶ LANCER LE PIPELINE
+      <span class="launch-hint" *ngIf="!canLaunch">— ajoute au moins une ville et un secteur</span>
     </button>
+
   </div>
 
+  <!-- ── Running phases ── -->
   <div class="phases" *ngIf="running || done">
     <div class="phase-track">
       <div *ngFor="let p of phases"
@@ -42,6 +118,7 @@
     </div>
   </div>
 
+  <!-- ── Live feed ── -->
   <div class="feed" *ngIf="events.length > 0">
     <div class="feed-header">
       <span>LIVE FEED</span>
