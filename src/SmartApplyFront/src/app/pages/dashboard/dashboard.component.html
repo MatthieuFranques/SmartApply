@@ -27,8 +27,10 @@
                 (click)="activeTab = 'companies'">ENTREPRISES</button>
         <button class="nav-btn" [class.active]="activeTab === 'applications'"
                 (click)="activeTab = 'applications'">CANDIDATURES</button>
-        <button class="nav-btn" disabled>OFFRES</button>
+        <button class="nav-btn" [class.active]="activeTab === 'offers'"
+                (click)="activeTab = 'offers'">OFFRES</button>
         <button class="nav-btn nav-pipeline" (click)="showPipeline = true">▶ PIPELINE</button>
+        <button class="nav-btn nav-profile" (click)="showProfile = true">◈ PROFIL</button>
         <button class="helper-btn" title="Besoin d'aide ?"><span class="icon">?</span></button>
         <span class="user-email">{{ currentUser?.email }}</span>
         <button class="btn-logout" (click)="logout()">DÉCO</button>
@@ -62,6 +64,11 @@
       <app-applications></app-applications>
     </ng-container>
 
+    <!-- Onglet Offres -->
+    <ng-container *ngIf="activeTab === 'offers'">
+      <app-offers></app-offers>
+    </ng-container>
+
   </ng-container>
 
 </div>
@@ -76,6 +83,14 @@
 <!-- Pipeline modal -->
 <app-pipeline
   [visible]="showPipeline"
+  [suggestion]="pipelineSuggestion"
   (closed)="showPipeline = false"
   (pipelineDone)="onPipelineDone()">
 </app-pipeline>
+
+<!-- Profile modal -->
+<app-profile
+  [visible]="showProfile"
+  (closed)="showProfile = false"
+  (launchPipeline)="onLaunchPipeline($event)">
+</app-profile>

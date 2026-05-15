@@ -3,7 +3,7 @@
 # Construction des prompts — 2 passes de génération
 # ============================================================
 
-from app.services.generate_letter.generate_letter_config  import REFERENCE_LETTER
+from app.services.generate_letter.generate_letter_config import REFERENCE_LETTER as _DEFAULT_REFERENCE_LETTER
 
 
 def build_analysis_prompt(company: dict, profile: dict) -> str:
@@ -93,7 +93,7 @@ MODE:
 [OFFRE si une offre pertinente existe (score >= 5) | SPONTANEE sinon]"""
 
 
-def build_letter_prompt(company: dict, profile: dict, analysis: str) -> str:
+def build_letter_prompt(company: dict, profile: dict, analysis: str, reference_letter: str = "") -> str:
     """
     PASSE 2 — Rédaction de la lettre.
     Temperature recommandée (0.7).
@@ -115,12 +115,14 @@ def build_letter_prompt(company: dict, profile: dict, analysis: str) -> str:
             f"Technos requises : {', '.join(offers[0].get('tech_required', [])[:6])}"
         )
 
+    ref = reference_letter.strip() if reference_letter.strip() else _DEFAULT_REFERENCE_LETTER
+
     return f"""Tu es un rédacteur expert en lettres de motivation pour profils tech en France/Belgique.
 
 Ta seule tâche : rédiger une lettre de motivation en français.
 
 === LETTRE DE RÉFÉRENCE (ton, style, structure à reproduire) ===
-{REFERENCE_LETTER}
+{ref}
 === FIN DE RÉFÉRENCE ===
 
 === ANALYSE PRÉALABLE ===

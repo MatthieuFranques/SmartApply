@@ -24,6 +24,7 @@ from app.models.letter import (
 )
 from app.services.auth.dependency import get_current_user
 from app.repositories.job_repository import JobRepository
+from app.repositories.profile_repository import UserProfileRepository
 from app.models.user import User
 
 router = APIRouter(prefix="/letter", tags=["letter"])
@@ -158,8 +159,13 @@ def generate_letter_for_company(
     if not job:
         raise HTTPException(status_code=404, detail=f"Entreprise '{decoded}' introuvable")
 
+    profile_repo     = UserProfileRepository()
+    user_profile     = profile_repo.get(current_user.google_id)
+    reference_letter = user_profile.pop("reference_letter", "")
+    user_profile.pop("cv_text", None)
+
     try:
-        letter_text = generate_letter(job.model_dump(), model)
+        letter_text = generate_letter(job.model_dump(), model, user_profile, reference_letter)
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Ollama indisponible : {e}")
 

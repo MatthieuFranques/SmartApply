@@ -11,15 +11,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 40s
 
   # Backend : 
 

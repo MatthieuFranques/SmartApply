@@ -1,0 +1,165 @@
+<div class="profile-backdrop" [class.open]="visible" (click)="close()"></div>
+
+<div class="profile-modal" [class.open]="visible">
+
+  <!-- Header -->
+  <div class="modal-header">
+    <div class="modal-title">◈ PROFIL</div>
+    <div class="header-right">
+      <span class="completion-badge">{{ profileCompletion }}% complet</span>
+      <button class="btn-close" (click)="close()">×</button>
+    </div>
+  </div>
+
+  <!-- CV upload zone -->
+  <div
+    class="cv-zone"
+    [class.drag-over]="dragOver"
+    [class.loading]="cvLoading"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)">
+    <div class="cv-zone-inner" *ngIf="!cvLoading">
+      <span class="cv-icon">📄</span>
+      <span class="cv-label">DÉPOSER CV (PDF) — l'IA extrait le profil automatiquement</span>
+      <label class="btn-upload">
+        CHOISIR
+        <input type="file" accept=".pdf" (change)="onFileInput($event)" style="display:none">
+      </label>
+    </div>
+    <div class="cv-loading-inner" *ngIf="cvLoading">
+      <div class="spinner"></div>
+      <span>Analyse IA en cours...</span>
+    </div>
+  </div>
+
+  <div class="cv-error" *ngIf="cvError">⚠ {{ cvError }}</div>
+
+  <!-- Pipeline suggestion banner -->
+  <div class="suggestion-banner" *ngIf="suggestion">
+    <div class="suggestion-text">
+      <span class="suggestion-icon">⬡</span>
+      <span><strong>Configuration suggérée :</strong> {{ suggestion.reasoning }}</span>
+    </div>
+    <button class="btn-launch-pipeline" (click)="openPipeline()">▶ LANCER →</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="modal-tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'">INFORMATIONS</button>
+    <button class="tab-btn" [class.active]="activeTab === 'letter'"  (click)="activeTab = 'letter'">LETTRE DE RÉFÉRENCE</button>
+  </div>
+
+  <!-- Tab: INFORMATIONS -->
+  <div class="modal-body" *ngIf="activeTab === 'profile'">
+    <div class="form-grid">
+
+      <div class="form-section">
+        <div class="section-title">IDENTITÉ</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">NOM COMPLET</label>
+            <input class="field-input" [(ngModel)]="profile.prenom_nom" placeholder="Jean Dupont">
+          </div>
+          <div class="form-field">
+            <label class="field-label">EMAIL</label>
+            <input class="field-input" [(ngModel)]="profile.email" placeholder="jean@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">TÉLÉPHONE</label>
+            <input class="field-input" [(ngModel)]="profile.telephone" placeholder="+33 6 ...">
+          </div>
+          <div class="form-field">
+            <label class="field-label">VILLE</label>
+            <input class="field-input" [(ngModel)]="profile.ville" placeholder="Toulouse">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">LIENS</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">PORTFOLIO</label>
+            <input class="field-input" [(ngModel)]="profile.portfolio" placeholder="https://monsite.fr">
+          </div>
+          <div class="form-field">
+            <label class="field-label">GITHUB</label>
+            <input class="field-input" [(ngModel)]="profile.github" placeholder="https://github.com/...">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">FORMATION</div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">DIPLÔME</label>
+            <input class="field-input" [(ngModel)]="profile.diplome" placeholder="Master Informatique">
+          </div>
+          <div class="form-field">
+            <label class="field-label">ÉCOLE</label>
+            <input class="field-input" [(ngModel)]="profile.ecole" placeholder="INSA Toulouse">
+          </div>
+          <div class="form-field form-field-narrow">
+            <label class="field-label">ANNÉE</label>
+            <input class="field-input" [(ngModel)]="profile.annee" placeholder="2024">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-title">COMPÉTENCES & EXPÉRIENCES</div>
+        <div class="form-field">
+          <label class="field-label">COMPÉTENCES TECHNIQUES</label>
+          <input class="field-input" [(ngModel)]="profile.competences" placeholder=".NET, Angular, Python, Docker...">
+        </div>
+        <div class="form-field">
+          <label class="field-label">SOFT SKILLS</label>
+          <input class="field-input" [(ngModel)]="profile.soft_skills" placeholder="Autonomie, Communication...">
+        </div>
+        <div class="form-field">
+          <label class="field-label">EXPÉRIENCES (résumé)</label>
+          <textarea class="field-input field-textarea" rows="3" [(ngModel)]="profile.experiences" placeholder="Décris tes principales expériences..."></textarea>
+        </div>
+        <div class="form-field">
+          <label class="field-label">PROJET PHARE</label>
+          <textarea class="field-input field-textarea" rows="2" [(ngModel)]="profile.projet_phare" placeholder="Ton projet le plus significatif..."></textarea>
+        </div>
+        <div class="form-field">
+          <label class="field-label">RECHERCHE</label>
+          <input class="field-input" [(ngModel)]="profile.recherche" placeholder="Développeur .NET fullstack — disponible immédiatement">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Tab: LETTRE DE RÉFÉRENCE -->
+  <div class="modal-body" *ngIf="activeTab === 'letter'">
+    <div class="letter-intro">
+      Lettre d'exemple utilisée comme référence de style par l'IA lors de la génération.
+      Si vide, une lettre par défaut est utilisée.
+    </div>
+    <div class="letter-count">{{ letterWordCount }} mots · {{ profile.reference_letter.length }} caractères</div>
+    <textarea
+      class="field-input field-textarea letter-textarea"
+      rows="22"
+      [(ngModel)]="profile.reference_letter"
+      placeholder="Colle ici ta lettre de motivation de référence (style, ton, structure)...">
+    </textarea>
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer">
+    <span class="save-success" *ngIf="saved">✓ Sauvegardé</span>
+    <span class="save-error"   *ngIf="saveError">⚠ {{ saveError }}</span>
+    <button class="btn-cancel" (click)="close()">ANNULER</button>
+    <button class="btn-save" (click)="save()" [disabled]="saving">
+      {{ saving ? '...' : '✓ SAUVEGARDER' }}
+    </button>
+  </div>
+
+</div>

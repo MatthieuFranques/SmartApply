@@ -24,6 +24,11 @@ charset-normalizer
 # IA
 ollama
 
+# CV PARSING & FILE UPLOAD
+pypdf
+python-multipart
+requests
+
 # TESTING
 pytest
 

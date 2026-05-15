@@ -20,7 +20,7 @@ def enrich_stream(
 
     def generate():
         if not jobs:
-            yield sse_event({"type": "error", "message": "Aucun job à enrichir"})
+            yield sse_event({"type": "done", "total": 0, "success": 0, "errors": 0})
             return
         for event in stream_enrich(jobs, current_user.google_id, repo, limit):
             yield sse_event(event)

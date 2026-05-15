@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PipelineService, PipelineParams, PipelineConfig } from '../../services/pipeline.service';
+import { PipelineSuggestion } from '../../services/profile.service';
 
 interface StreamEvent {
   type:        string;
@@ -33,9 +34,10 @@ type ViewState = 'config' | 'running' | 'done';
   templateUrl: './pipeline.component.html',
   styleUrls:   ['./pipeline.component.scss'],
 })
-export class PipelineComponent implements OnInit, OnDestroy {
+export class PipelineComponent implements OnInit, OnDestroy, OnChanges {
 
-  @Input()  visible = false;
+  @Input()  visible    = false;
+  @Input()  suggestion: PipelineSuggestion | null = null;
   @Output() closed       = new EventEmitter<void>();
   @Output() pipelineDone = new EventEmitter<void>();
 
@@ -94,7 +96,20 @@ export class PipelineComponent implements OnInit, OnDestroy {
     });
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['suggestion']?.currentValue) {
+      this.applySuggestion(changes['suggestion'].currentValue);
+    }
+  }
+
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
+
+  private applySuggestion(s: PipelineSuggestion): void {
+    if (s.cities?.length)   this.cities        = [...s.cities];
+    if (s.sectors?.length)  this.activeSectors  = [...s.sectors];
+    if (s.max_results)      this.maxResults     = s.max_results;
+    if (s.keyword_match)    this.keywordMatch   = s.keyword_match as 'any' | 'all';
+  }
 
   // ── Modal control ────────────────────────────────────────
   close(): void {
@@ -165,7 +180,7 @@ export class PipelineComponent implements OnInit, OnDestroy {
 
     this.sub = this.pipeline.runFullPipeline(params).subscribe({
       next:     (e) => this.handleEvent(e),
-      complete: ()  => { if (this.view === 'running') this.view = 'done'; },
+      complete: ()  => { if (this.view === 'running') { this.view = 'done'; this.pipelineDone.emit(); } },
       error:    ()  => { if (this.view === 'running') this.view = 'done'; },
     });
   }
@@ -206,12 +221,7 @@ export class PipelineComponent implements OnInit, OnDestroy {
 
   private isStateChange(e: StreamEvent): boolean {
     if (e.type === 'phase') { this.currentPhase = e.phase!; return true; }
-    if (e.type === 'pipeline_done') {
-      this.view = 'done';
-      this.events.unshift(e);
-      this.pipelineDone.emit();
-      return true;
-    }
+    if (e.type === 'done')  { return true; }
     return false;
   }
 

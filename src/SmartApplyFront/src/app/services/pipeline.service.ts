@@ -77,7 +77,7 @@ export class PipelineService {
         try {
           const data = JSON.parse(event.data);
           observer.next(data);
-          if (data.type === 'done') {
+          if (data.type === 'done' || data.type === 'error') {
             es.close();
             observer.complete();
           }

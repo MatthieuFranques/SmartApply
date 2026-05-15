@@ -6,11 +6,14 @@ import { Subscription } from 'rxjs';
 import { Company } from '../../models/company.model';
 import { CompanyDetailComponent } from '../company/company.detail.component';
 import { ApplicationsComponent } from '../applications/applications.component';
+import { OffersComponent } from '../offers/offers.component';
 import { PipelineComponent } from '../../components/pipeline/pipeline.component';
+import { ProfileComponent } from '../../components/profile/profile.component';
 import { AuthScreenComponent } from '../../components/authScreen/auth-screen.component';
 import { StatsBarComponent, StatItem } from '../../components/statsBar/stats-bar.component';
 import { CityFiltersComponent, CityCount } from '../../components/cityFilters/city-filters.component';
 import { CompanyTableComponent } from '../../components/companyTable/company-table.component';
+import { PipelineSuggestion } from '../../services/profile.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,7 +22,9 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
     CommonModule,
     CompanyDetailComponent,
     ApplicationsComponent,
+    OffersComponent,
     PipelineComponent,
+    ProfileComponent,
     AuthScreenComponent,
     StatsBarComponent,
     CityFiltersComponent,
@@ -30,8 +35,11 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
 })
 export class DashboardComponent implements OnInit, OnDestroy {
 
-  activeTab       : 'companies' | 'applications' = 'companies';
-  showPipeline    : boolean = false;
+  activeTab          : 'companies' | 'applications' | 'offers' = 'companies';
+  showPipeline       : boolean = false;
+  showProfile        : boolean = false;
+  pipelineSuggestion : PipelineSuggestion | null = null;
+
   companies       : Company[]  = [];
   loading         : boolean    = false;
   statusMessage   : string     = '';
@@ -40,7 +48,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   authenticated : boolean = false;
   authChecking  : boolean = true;
-  currentUser: { email: string; name: string } | null = null;  
+  currentUser: { email: string; name: string } | null = null;
   private readonly api = 'http://localhost:8000';
   private readonly sub?: Subscription;
 
@@ -78,7 +86,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Computed pour les sous-composants ─────────────────────
+  // ── Computed ──────────────────────────────────────────────
 
   get filteredCompanies(): Company[] {
     if (!this.selectedCity || this.selectedCity === 'all') return this.companies;
@@ -88,14 +96,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get statItems(): StatItem[] {
-  const fc = this.filteredCompanies;
-  return [
-    { value: fc.length,                                        label: 'Entreprises', color: 'var(--accent)'  },
-    { value: fc.filter(c => c.is_recruiting).length,          label: 'Recrutent',   color: 'var(--accent5)'  },
-    // { value: fc.filter(c => c.job_offers?.length > 0).length, label: 'Offres IT',   color: 'var(--accent2)' },
-    { value: fc.filter(c => !!c.contact_form?.url).length,    label: 'Contacts',    color: 'var(--accent2)' },
-  ];
-}
+    const fc = this.filteredCompanies;
+    return [
+      { value: fc.length,                                     label: 'Entreprises', color: 'var(--accent)'  },
+      { value: fc.filter(c => c.is_recruiting).length,        label: 'Recrutent',   color: 'var(--accent5)' },
+      { value: fc.filter(c => !!c.contact_form?.url).length,  label: 'Contacts',    color: 'var(--accent2)' },
+    ];
+  }
 
   get cityItems(): CityCount[] {
     return [...new Set(this.companies.map(c => c.ville).filter(Boolean))]
@@ -110,13 +117,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   filterByCity(city: string): void { this.selectedCity = city; }
   openDetail(company: Company):  void { this.selectedCompany = company; }
   closeDetail():                 void { this.selectedCompany = null; }
-  onDeleted(nom: string):        void {
+
+  onDeleted(nom: string): void {
     this.companies       = this.companies.filter(c => c.nom !== nom);
     this.selectedCompany = null;
   }
+
   onPipelineDone(): void { this.loadResults(); }
 
-  // ── Chargement ────────────────────────────────────────────
+  onLaunchPipeline(suggestion: PipelineSuggestion): void {
+    this.pipelineSuggestion = suggestion;
+    this.showPipeline = true;
+  }
+
+  // ── Load ──────────────────────────────────────────────────
 
   loadResults(): void {
     this.loading = true;

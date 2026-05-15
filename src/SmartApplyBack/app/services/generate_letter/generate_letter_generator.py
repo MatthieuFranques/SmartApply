@@ -52,23 +52,29 @@ def _chat(model: str, prompt: str, temperature: float, max_tokens: int) -> str:
     return resp["message"]["content"].strip()
 
 
-def generate_letter(company: dict, model: str) -> str:
+def generate_letter(company: dict, model: str, profile: dict | None = None, reference_letter: str = "") -> str:
     """
     Génération en 2 passes :
       Passe 1 (0.3) — analyse rigoureuse profil vs entreprise
       Passe 2 (0.7) — rédaction fluide basée sur l'analyse
+
+    Args:
+        profile:          user profile dict; falls back to hardcoded PROFILE if None or empty
+        reference_letter: user's reference letter; falls back to default if empty
     """
-    analysis = _chat(model, build_analysis_prompt(company, PROFILE), 0.3, 500)
-    body     = _chat(model, build_letter_prompt(company, PROFILE, analysis), 0.7, 750)
-    return f"{build_header(PROFILE)}\n\n{body}"
+    p        = profile if profile and profile.get("prenom_nom") else PROFILE
+    analysis = _chat(model, build_analysis_prompt(company, p), 0.3, 500)
+    body     = _chat(model, build_letter_prompt(company, p, analysis, reference_letter), 0.7, 750)
+    return f"{build_header(p)}\n\n{body}"
 
 
-def generate_contact_form(company: dict, model: str) -> dict:
+def generate_contact_form(company: dict, model: str, profile: dict | None = None) -> dict:
     """
     Génère le contenu JSON pour remplir un formulaire de contact.
     Utilisé quand pas d'offre pertinente mais formulaire détecté.
     """
-    raw = _chat(model, build_contact_form_prompt(company, PROFILE), 0.5, 600)
+    p   = profile if profile and profile.get("prenom_nom") else PROFILE
+    raw = _chat(model, build_contact_form_prompt(company, p), 0.5, 600)
 
     # Nettoyage du JSON généré
     raw = re.sub(r"```json|```", "", raw).strip()
