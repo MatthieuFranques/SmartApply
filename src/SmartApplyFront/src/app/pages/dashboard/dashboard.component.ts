@@ -53,7 +53,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   checkAuth(): void {
     this.authChecking = true;
     this.http.get<{ authenticated: boolean; email: string; name: string }>(
-      `${this.api}/gmail/status`, { withCredentials: true },
+      `${this.api}/auth/status`, { withCredentials: true },
     ).subscribe({
       next: (res) => {
         this.authenticated = res.authenticated;
@@ -65,10 +65,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  connectGmail(): void { globalThis.location.href = `${this.api}/gmail/auth`; }
+  connectGmail(): void { globalThis.location.href = `${this.api}/auth/login`; }
 
   logout(): void {
-    this.http.post(`${this.api}/gmail/logout`, {}, { withCredentials: true }).subscribe({
+    this.http.post(`${this.api}/auth/logout`, {}, { withCredentials: true }).subscribe({
       next: () => {
         this.authenticated = false;
         this.currentUser   = null;

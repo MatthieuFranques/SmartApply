@@ -5,10 +5,8 @@ Prétraitement GRATUIT des entreprises avant le deep filter.
 """
 
 import os
-import sys
 import time
 import socket
-import argparse
 import requests
 
 from bs4             import BeautifulSoup

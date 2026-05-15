@@ -53,36 +53,30 @@ def _make_flow() -> Flow:
 # ── Auth helpers ──────────────────────────────────────────────
 
 def get_auth_url() -> str:
-    """Génère l'URL d'autorisation Google standard."""
     import urllib.parse
-    
+
     params = {
-        "client_id": CLIENT_ID.strip(), # .strip() pour éviter un espace invisible
-        "redirect_uri": "http://localhost:8000/gmail/callback",
-        "response_type": "code",
-        "scope": " ".join(SCOPES),
-        "access_type": "offline",
+        "client_id":              CLIENT_ID.strip(),
+        "redirect_uri":           REDIRECT_URI,
+        "response_type":          "code",
+        "scope":                  " ".join(SCOPES),
+        "access_type":            "offline",
         "include_granted_scopes": "true",
-        "prompt": "consent",
+        "prompt":                 "consent",
     }
-    
-    url_base = "https://accounts.google.com/o/oauth2/v2/auth"
-    # Utilise urlencode pour être sûr que les caractères (/:) sont bien transformés
+
     query_string = urllib.parse.urlencode(params)
-    
-    return f"{url_base}?{query_string}"
+    return f"https://accounts.google.com/o/oauth2/v2/auth?{query_string}"
 
 
 def exchange_code_for_user(code: str) -> tuple[dict, dict]:
-    """Échange le code contre des tokens et récupère les infos utilisateur."""
-    # 1. Échange du code contre Token
     token_url = "https://oauth2.googleapis.com/token"
     data = {
-        "code": code,
-        "client_id": CLIENT_ID,
+        "code":          code,
+        "client_id":     CLIENT_ID,
         "client_secret": CLIENT_SECRET,
-        "redirect_uri": "http://localhost:8000/gmail/callback",
-        "grant_type": "authorization_code",
+        "redirect_uri":  REDIRECT_URI,
+        "grant_type":    "authorization_code",
     }
     
     token_resp = http_requests.post(token_url, data=data, timeout=10)

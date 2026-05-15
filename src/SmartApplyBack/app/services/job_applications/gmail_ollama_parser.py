@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import re
+import threading
 from typing import Optional
 
 import ollama
@@ -341,15 +342,21 @@ def should_upgrade_statut(ancien: str, nouveau: str) -> bool:
 # CACHE — une seule passe par email dans un même sync
 # ══════════════════════════════════════════════════════════════
 
-_cache: dict[str, dict] = {}
+_tls = threading.local()
+
+
+def _get_cache() -> dict:
+    if not hasattr(_tls, "cache"):
+        _tls.cache = {}
+    return _tls.cache
 
 
 def _get_parsed(sender: str, subject: str, body: str, msg_id: str = "") -> dict:
-    # L'ID du message Gmail est la seule source de vérité absolue pour l'unicité
+    cache = _get_cache()
     key = msg_id if msg_id else f"{sender[:30]}|{subject[:50]}"
-    if key not in _cache:
-        _cache[key] = parse_email(sender, subject, body)
-    return _cache[key]
+    if key not in cache:
+        cache[key] = parse_email(sender, subject, body)
+    return cache[key]
 
 
 # ══════════════════════════════════════════════════════════════
@@ -375,4 +382,5 @@ def detect_statut(subject: str, body: str, sender: str = "") -> str:
     return _get_parsed(sender, subject, body).get("statut", "En attente")
 
 def clear_cache() -> None:
-    _cache.clear()
+    if hasattr(_tls, "cache"):
+        _tls.cache.clear()
