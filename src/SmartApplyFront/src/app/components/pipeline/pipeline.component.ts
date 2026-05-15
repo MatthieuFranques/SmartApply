@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { PipelineService, ScrapingParams } from '../../services/pipeline.service';
+import { PipelineService, PipelineParams, PipelineConfig } from '../../services/pipeline.service';
 
 interface StreamEvent {
   type:        string;
@@ -15,7 +15,6 @@ interface StreamEvent {
   total?:      number;
   prescore?:   number;
   deep_score?: number;
-  summary?:    string;
 }
 
 interface PhaseStats {
@@ -24,6 +23,8 @@ interface PhaseStats {
   eliminated: number;
   errors:     number;
 }
+
+type ViewState = 'config' | 'running' | 'done';
 
 @Component({
   selector:    'app-pipeline',
@@ -34,24 +35,29 @@ interface PhaseStats {
 })
 export class PipelineComponent implements OnInit, OnDestroy {
 
+  @Input()  visible = false;
+  @Output() closed       = new EventEmitter<void>();
   @Output() pipelineDone = new EventEmitter<void>();
 
-  // ── Config state ──────────────────────────────────────────
+  // ── Config data ──────────────────────────────────────────
+  config: PipelineConfig | null = null;
+
+  // ── Scraping params ──────────────────────────────────────
   cityInput     = '';
   cities        : string[] = ['Toulouse'];
-  supportedCities: string[] = [];
-
+  customSector  = '';
   allSectors    : string[] = [];
   activeSectors : string[] = [];
-  customSector  = '';
-
   maxResults    = 100;
   keywordMatch  : 'any' | 'all' = 'any';
 
-  // ── Pipeline state ────────────────────────────────────────
-  running = false;
-  done    = false;
+  // ── Filter params ────────────────────────────────────────
+  minPrescore  = 4;
+  minDeepScore = 5;
+  skipDeep     = false;
 
+  // ── Pipeline state ───────────────────────────────────────
+  view: ViewState = 'config';
   currentPhase = '';
   events: StreamEvent[] = [];
 
@@ -62,34 +68,49 @@ export class PipelineComponent implements OnInit, OnDestroy {
   };
 
   phases = [
-    { key: 'scraping', label: 'SCRAPING',      icon: '🔍' },
-    { key: 'filter',   label: 'FILTRAGE',       icon: '⚡' },
-    { key: 'enrich',   label: 'ENRICHISSEMENT', icon: '🧬' },
+    { key: 'scraping', label: 'SCRAPING',      icon: '○' },
+    { key: 'filter',   label: 'FILTRAGE',       icon: '○' },
+    { key: 'enrich',   label: 'ENRICHISSEMENT', icon: '○' },
   ];
 
   private sub?: Subscription;
 
+  get running(): boolean { return this.view === 'running'; }
+  get done():    boolean { return this.view === 'done'; }
+
   constructor(private readonly pipeline: PipelineService) {}
 
   ngOnInit(): void {
-    this.pipeline.getScrapingConfig().subscribe({
+    this.pipeline.getPipelineConfig().subscribe({
       next: (cfg) => {
-        this.allSectors     = cfg.default_sectors;
-        this.activeSectors  = [...cfg.default_sectors];
-        this.supportedCities = cfg.supported_cities;
+        this.config       = cfg;
+        this.allSectors   = cfg.scraping.default_sectors;
+        this.activeSectors = [...cfg.scraping.default_sectors];
+        this.maxResults   = cfg.scraping.max_results.default;
+        this.minPrescore  = cfg.filter.min_prescore.default;
+        this.minDeepScore = cfg.filter.min_deep_score.default;
+        this.skipDeep     = cfg.filter.skip_deep.default;
       },
     });
   }
 
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
 
-  // ── City management ───────────────────────────────────────
+  // ── Modal control ────────────────────────────────────────
+  close(): void {
+    if (!this.running) this.closed.emit();
+  }
 
+  onBackdrop(event: MouseEvent): void {
+    if ((event.target as HTMLElement).classList.contains('modal-backdrop')) {
+      this.close();
+    }
+  }
+
+  // ── City management ──────────────────────────────────────
   addCity(): void {
     const city = this.cityInput.trim();
-    if (city && !this.cities.includes(city)) {
-      this.cities.push(city);
-    }
+    if (city && !this.cities.includes(city)) this.cities.push(city);
     this.cityInput = '';
   }
 
@@ -97,14 +118,12 @@ export class PipelineComponent implements OnInit, OnDestroy {
     this.cities = this.cities.filter(c => c !== city);
   }
 
-  // ── Sector management ─────────────────────────────────────
-
+  // ── Sector management ────────────────────────────────────
   toggleSector(sector: string): void {
-    if (this.activeSectors.includes(sector)) {
+    if (this.activeSectors.includes(sector))
       this.activeSectors = this.activeSectors.filter(s => s !== sector);
-    } else {
+    else
       this.activeSectors.push(sector);
-    }
   }
 
   addCustomSector(): void {
@@ -116,19 +135,17 @@ export class PipelineComponent implements OnInit, OnDestroy {
     this.customSector = '';
   }
 
-  selectAllSectors():  void { this.activeSectors = [...this.allSectors]; }
-  clearAllSectors():   void { this.activeSectors = []; }
+  selectAllSectors(): void { this.activeSectors = [...this.allSectors]; }
+  clearAllSectors():  void { this.activeSectors = []; }
 
-  // ── Pipeline control ──────────────────────────────────────
-
+  // ── Pipeline control ─────────────────────────────────────
   get canLaunch(): boolean {
     return this.cities.length > 0 && this.activeSectors.length > 0;
   }
 
   launch(): void {
-    this.running      = true;
-    this.done         = false;
-    this.events       = [];
+    this.view = 'running';
+    this.events = [];
     this.currentPhase = '';
     this.stats = {
       scraping: { found: 0, kept: 0, eliminated: 0, errors: 0 },
@@ -136,27 +153,35 @@ export class PipelineComponent implements OnInit, OnDestroy {
       enrich:   { found: 0, kept: 0, eliminated: 0, errors: 0 },
     };
 
-    const params: ScrapingParams = {
+    const params: PipelineParams = {
       cities:       this.cities,
       sectors:      this.activeSectors,
       maxResults:   this.maxResults,
       keywordMatch: this.keywordMatch,
+      minPrescore:  this.minPrescore,
+      minDeepScore: this.minDeepScore,
+      skipDeep:     this.skipDeep,
     };
 
     this.sub = this.pipeline.runFullPipeline(params).subscribe({
       next:     (e) => this.handleEvent(e),
-      complete: ()  => { this.running = false; },
-      error:    ()  => { this.running = false; },
+      complete: ()  => { if (this.view === 'running') this.view = 'done'; },
+      error:    ()  => { if (this.view === 'running') this.view = 'done'; },
     });
   }
 
   stop(): void {
     this.sub?.unsubscribe();
-    this.running = false;
+    this.view = 'done';
   }
 
-  // ── Event handling ────────────────────────────────────────
+  relancer(): void {
+    this.view = 'config';
+    this.events = [];
+    this.currentPhase = '';
+  }
 
+  // ── Event handling ───────────────────────────────────────
   get phaseStatus(): Record<string, 'pending' | 'active' | 'done'> {
     const order = ['scraping', 'filter', 'enrich'];
     const result: Record<string, 'pending' | 'active' | 'done'> = {};
@@ -174,24 +199,15 @@ export class PipelineComponent implements OnInit, OnDestroy {
 
   private handleEvent(e: StreamEvent): void {
     if (this.isStateChange(e)) return;
-
     const phase = e.phase || this.currentPhase;
-
-    if (phase && this.stats[phase]) {
-      this.updatePhaseStats(phase, e);
-    }
-
+    if (phase && this.stats[phase]) this.updatePhaseStats(phase, e);
     this.addVisibleEvent(e, phase);
   }
 
   private isStateChange(e: StreamEvent): boolean {
-    if (e.type === 'phase') {
-      this.currentPhase = e.phase!;
-      return true;
-    }
+    if (e.type === 'phase') { this.currentPhase = e.phase!; return true; }
     if (e.type === 'pipeline_done') {
-      this.done = true;
-      this.running = false;
+      this.view = 'done';
       this.events.unshift(e);
       this.pipelineDone.emit();
       return true;
@@ -210,8 +226,8 @@ export class PipelineComponent implements OnInit, OnDestroy {
   }
 
   private addVisibleEvent(e: StreamEvent, phase: string): void {
-    const visibleTypes = ['company', 'result', 'done', 'error', 'city', 'pipeline_done'];
-    if (visibleTypes.includes(e.type)) {
+    const visible = ['company', 'result', 'done', 'error', 'city', 'pipeline_done'];
+    if (visible.includes(e.type)) {
       this.events.unshift({ ...e, phase });
       if (this.events.length > 200) this.events.pop();
     }
@@ -220,18 +236,18 @@ export class PipelineComponent implements OnInit, OnDestroy {
   eventLabel(e: StreamEvent): string {
     switch (e.type) {
       case 'company':
-        return `${e.company} (${e.domaine})`;
+        return `${e.company} · ${e.domaine}`;
       case 'result':
         if (e.status === 'kept' || e.status === 'ok')
-          return `✅ ${e.company}${e.prescore ? ' · pre:' + e.prescore : ''}${e.deep_score ? ' · deep:' + e.deep_score : ''}`;
+          return `✓ ${e.company}${e.prescore ? ' · pre:' + e.prescore : ''}${e.deep_score ? ' · ai:' + e.deep_score : ''}`;
         if (e.status === 'eliminated') return `✗ ${e.company}`;
-        if (e.status === 'error')      return `⚠ ${e.company} — ${e.message || ''}`;
-        return e.company || '';
-      case 'city':         return `📍 ${e.city}`;
-      case 'done':         return `Phase terminée — ${e.total ?? ''} traités`;
-      case 'error':        return `❌ ${e.message}`;
-      case 'pipeline_done': return '🎉 Pipeline terminé !';
-      default:             return '';
+        if (e.status === 'error')      return `⚠ ${e.company} — ${e.message ?? ''}`;
+        return e.company ?? '';
+      case 'city':          return `→ ${e.city}`;
+      case 'done':          return `Phase terminée · ${e.total ?? ''} traités`;
+      case 'error':         return `⚠ ${e.message}`;
+      case 'pipeline_done': return 'Pipeline terminé';
+      default:              return '';
     }
   }
 

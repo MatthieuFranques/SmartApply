@@ -31,6 +31,7 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
 export class DashboardComponent implements OnInit, OnDestroy {
 
   activeTab       : 'companies' | 'applications' = 'companies';
+  showPipeline    : boolean = false;
   companies       : Company[]  = [];
   loading         : boolean    = false;
   statusMessage   : string     = '';
