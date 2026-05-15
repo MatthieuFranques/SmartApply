@@ -1,7 +1,7 @@
 import datetime
 import json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.responses import FileResponse
 
 from app.services.generate_letter.generate_letter_generator import (
@@ -22,8 +22,10 @@ from app.models.letter import (
     GenerateResponse,
     LetterItem,
 )
+from app.services.auth.dependency import get_current_user
+from app.repositories.job_repository import JobRepository
+from app.models.user import User
 
-# Utilisation d'un préfixe propre
 router = APIRouter(prefix="/letter", tags=["letter"])
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -136,6 +138,33 @@ def generate(body: GenerateRequest):
         model=body.model,
         output_dir=str(output_dir),
     )
+
+@router.get("/{name}")
+def generate_letter_for_company(
+    name: str,
+    model: str = Query(default=DEFAULT_MODEL),
+    current_user: User = Depends(get_current_user),
+):
+    if not check_ollama():
+        raise HTTPException(status_code=503, detail="Ollama inaccessible")
+
+    repo    = JobRepository()
+    decoded = name.replace("%20", " ")
+    job     = next(
+        (j for j in repo.find_by_user(current_user.google_id)
+         if j.nom.lower() == decoded.lower()),
+        None,
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Entreprise '{decoded}' introuvable")
+
+    try:
+        letter_text = generate_letter(job.model_dump(), model)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Ollama indisponible : {e}")
+
+    return {"letter": letter_text}
+
 
 @router.get("/details")  # On change un peu l'URL pour ne pas confondre avec /{name}
 def get_letter_by_body(request: CompanySearchRequest, output_dir: str = Query(default=str(OUTPUT_DIR))):

@@ -18,6 +18,7 @@ load_dotenv()
 # ── Scopes ────────────────────────────────────────────────────
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.compose",
     "openid",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -232,3 +233,35 @@ def fetch_emails_by_label(
         results.append(_parse_message(raw, label_name))
 
     return results
+
+
+# ── Draft creation ────────────────────────────────────────────
+
+def create_gmail_draft(
+    access_token: str,
+    subject: str,
+    body: str,
+    to: str = "",
+) -> dict:
+    import base64
+    from email.mime.text import MIMEText
+
+    creds   = Credentials(token=access_token)
+    service = build("gmail", "v1", credentials=creds)
+
+    message = MIMEText(body, "plain", "utf-8")
+    message["subject"] = subject
+    if to:
+        message["to"] = to
+
+    raw   = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+    draft = service.users().drafts().create(
+        userId = "me",
+        body   = {"message": {"raw": raw}},
+    ).execute()
+
+    draft_id   = draft["id"]
+    message_id = draft.get("message", {}).get("id", "")
+    draft_url  = f"https://mail.google.com/mail/#drafts/{message_id}"
+
+    return {"draft_id": draft_id, "draft_url": draft_url}

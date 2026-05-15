@@ -29,11 +29,25 @@
             [disabled]="letterLoading">
       {{ letterLoading ? 'Génération...' : 'Lettre de motivation' }}
     </button>
+    <button class="btn-action btn-draft"
+            (click)="createDraft()"
+            [disabled]="draftLoading">
+      {{ draftLoading ? 'Création...' : 'Brouillon Gmail' }}
+    </button>
     <button class="btn-action btn-delete"
             (click)="confirmDelete()"
             [disabled]="deleteLoading">
       {{ deleteLoading ? 'Suppression...' : 'Supprimer' }}
     </button>
+  </div>
+
+  <!-- Draft status -->
+  <div class="draft-banner success" *ngIf="draftUrl">
+    ✅ Brouillon créé —
+    <a [href]="draftUrl" target="_blank" class="draft-link">Ouvrir dans Gmail</a>
+  </div>
+  <div class="draft-banner error" *ngIf="draftError">
+    ⚠️ {{ draftError }}
   </div>
 
   <!-- Delete confirm banner -->
