@@ -21,6 +21,7 @@ CV:
 Format JSON attendu:
 {{
   "prenom_nom":   "Prénom Nom",
+  "titre":        "Développeur .NET / Fullstack",
   "email":        "email@example.com",
   "telephone":    "+33 6 ...",
   "ville":        "Ville",
@@ -36,17 +37,19 @@ Format JSON attendu:
   "recherche":    "Poste recherché et contexte"
 }}"""
 
-    resp = ollama.chat(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.1, "num_predict": 600},
-    )
-    raw = resp["message"]["content"]
-    raw = re.sub(r"```json|```", "", raw).strip()
     try:
+        resp = ollama.chat(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.1, "num_predict": 600},
+        )
+        raw = resp["message"]["content"]
+        raw = re.sub(r"```json|```", "", raw).strip()
         return json.loads(raw)
     except json.JSONDecodeError:
         return {}
+    except Exception as e:
+        raise RuntimeError(f"Ollama indisponible : {e}") from e
 
 
 def suggest_pipeline_config(profile: dict, model: str = "mistral") -> dict:
@@ -76,14 +79,16 @@ Format JSON attendu:
 Villes disponibles: Paris, Lyon, Toulouse, Bordeaux, Nantes, Lille, Strasbourg, Montpellier, Nice, Rennes, Grenoble, Marseille, Bruxelles, Luxembourg
 Secteurs possibles: SaaS, Fintech, Deeptech, Cybersécurité, E-commerce, Gaming, Medtech, EdTech, Consulting, Agence, ESN, Industriel, Startup"""
 
-    resp = ollama.chat(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.2, "num_predict": 400},
-    )
-    raw = resp["message"]["content"]
-    raw = re.sub(r"```json|```", "", raw).strip()
     try:
+        resp = ollama.chat(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.2, "num_predict": 400},
+        )
+        raw = resp["message"]["content"]
+        raw = re.sub(r"```json|```", "", raw).strip()
         return json.loads(raw)
     except json.JSONDecodeError:
+        return {}
+    except Exception:
         return {}

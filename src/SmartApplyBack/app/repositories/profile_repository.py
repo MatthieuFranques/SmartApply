@@ -2,6 +2,7 @@ from app.db.mongo import get_db
 
 DEFAULT_PROFILE: dict = {
     "prenom_nom":    "",
+    "titre":         "",
     "email":         "",
     "telephone":     "",
     "ville":         "",

@@ -62,11 +62,15 @@
             <input class="field-input" [(ngModel)]="profile.prenom_nom" placeholder="Jean Dupont">
           </div>
           <div class="form-field">
-            <label class="field-label">EMAIL</label>
-            <input class="field-input" [(ngModel)]="profile.email" placeholder="jean@example.com">
+            <label class="field-label">TITRE / POSTE</label>
+            <input class="field-input" [(ngModel)]="profile.titre" placeholder="Développeur .NET / Fullstack">
           </div>
         </div>
         <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">EMAIL</label>
+            <input class="field-input" [(ngModel)]="profile.email" placeholder="jean@example.com">
+          </div>
           <div class="form-field">
             <label class="field-label">TÉLÉPHONE</label>
             <input class="field-input" [(ngModel)]="profile.telephone" placeholder="+33 6 ...">

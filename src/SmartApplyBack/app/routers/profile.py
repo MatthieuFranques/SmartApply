@@ -13,6 +13,7 @@ OLLAMA_MODEL = "mistral"
 
 class UserProfileBody(BaseModel):
     prenom_nom:       str = ""
+    titre:            str = ""
     email:            str = ""
     telephone:        str = ""
     ville:            str = ""
@@ -63,8 +64,12 @@ async def upload_cv(
     if not cv_text.strip():
         raise HTTPException(status_code=422, detail="Could not extract text from PDF")
 
-    profile_data = parse_cv_profile(cv_text, OLLAMA_MODEL)
-    suggestion   = suggest_pipeline_config(profile_data, OLLAMA_MODEL)
+    try:
+        profile_data = parse_cv_profile(cv_text, OLLAMA_MODEL)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    suggestion = suggest_pipeline_config(profile_data, OLLAMA_MODEL)
 
     repo = UserProfileRepository()
     existing = repo.get(current_user.google_id)

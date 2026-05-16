@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface UserProfile {
   prenom_nom:       string;
+  titre:            string;
   email:            string;
   telephone:        string;
   ville:            string;

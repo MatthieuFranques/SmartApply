@@ -14,13 +14,17 @@ from app.services.generate_letter.generate_letter_prompts import build_analysis_
 
 
 def build_header(profile: dict) -> str:
-    return (
-        f"{profile['prenom_nom']}\n"
-        f"{profile['titre']}\n"
-        f"{profile['telephone']} | {profile['email']}\n"
-        f"Portfolio : {profile['portfolio']}\n"
-        f"GitHub : {profile['github']}"
-    )
+    parts = [profile.get("prenom_nom", "")]
+    if profile.get("titre"):
+        parts.append(profile["titre"])
+    contact = " | ".join(filter(None, [profile.get("telephone"), profile.get("email")]))
+    if contact:
+        parts.append(contact)
+    if profile.get("portfolio"):
+        parts.append(f"Portfolio : {profile['portfolio']}")
+    if profile.get("github"):
+        parts.append(f"GitHub : {profile['github']}")
+    return "\n".join(parts)
 
 
 def slug(name: str) -> str:

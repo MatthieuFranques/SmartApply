@@ -19,7 +19,7 @@ export class ProfileComponent implements OnChanges {
   activeTab: 'profile' | 'letter' = 'profile';
 
   profile: UserProfile = {
-    prenom_nom: '', email: '', telephone: '', ville: '',
+    prenom_nom: '', titre: '', email: '', telephone: '', ville: '',
     portfolio: '', github: '', diplome: '', ecole: '', annee: '',
     experiences: '', projet_phare: '', competences: '', soft_skills: '',
     recherche: '', reference_letter: '',
@@ -103,9 +103,12 @@ export class ProfileComponent implements OnChanges {
         this.profile   = { ...this.profile, ...res.profile };
         this.suggestion = res.pipeline_suggestion;
       },
-      error: () => {
+      error: (err) => {
         this.cvLoading = false;
-        this.cvError   = 'Erreur analyse CV — vérifier que Ollama tourne';
+        const detail = err?.error?.detail || '';
+        this.cvError = detail
+          ? `Erreur : ${detail}`
+          : 'Erreur analyse CV — vérifier que Ollama tourne (ollama serve)';
       },
     });
   }
