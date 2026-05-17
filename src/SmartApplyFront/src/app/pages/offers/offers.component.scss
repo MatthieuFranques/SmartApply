@@ -2,6 +2,122 @@
   display: block;
 }
 
+// ── Section headers ───────────────────────────────────────────
+.section-header,
+.search-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--muted);
+}
+
+.section-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--accent);
+  background: rgba(0,229,160,0.07);
+  border: 1px solid rgba(0,229,160,0.18);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.spinner-sm {
+  width: 12px; height: 12px;
+  border-width: 1.5px;
+}
+
+// ── Stored groups ─────────────────────────────────────────────
+.stored-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.group-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover         { background: var(--surface2); }
+  &.group-expanded { background: var(--surface2); border-bottom: 1px solid var(--border); }
+}
+
+.group-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-keyword {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.group-sep      { color: var(--muted); font-size: 10px; }
+.group-location {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.group-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-count-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: #ff6b35;
+  background: rgba(255,107,53,0.07);
+  border: 1px solid rgba(255,107,53,0.18);
+  border-radius: 3px;
+  padding: 1px 7px;
+}
+
+.group-chevron {
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.group-offers {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg);
+  padding: 8px;
+  gap: 6px;
+}
+
 // ── Search bar ────────────────────────────────────────────────
 .search-bar {
   display: flex;

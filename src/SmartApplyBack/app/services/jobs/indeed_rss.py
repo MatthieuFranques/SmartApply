@@ -1,67 +1,55 @@
 """
-indeed_rss.py
--------------
-Scrape public Indeed RSS feed.
-No API key required. Legal public endpoint.
+indeed_rss.py → JSearch (RapidAPI)
+-----------------------------------
+Drop-in replacement for the former Indeed RSS scraper.
+Requires JSEARCH_API_KEY env var (RapidAPI key).
+Free tier: 200 requests/month.
 """
 
 import hashlib
-import re
-import xml.etree.ElementTree as ET
-from email.utils import parsedate_to_datetime
-from urllib.parse import quote_plus
+import os
 
 import requests
+from dotenv import load_dotenv
 
-_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"}
-_BASE_URL = "https://fr.indeed.com/rss"
+load_dotenv()
 
-# Indeed XML namespace
-_NS = "https://www.indeed.com/"
-
-
-def _clean_html(text: str) -> str:
-    return re.sub(r"<[^>]+>", " ", text).strip()[:600]
-
-
-def _parse_date(date_str: str) -> str:
-    try:
-        return parsedate_to_datetime(date_str).strftime("%Y-%m-%d")
-    except Exception:
-        return ""
+_API_KEY  = os.getenv("JSEARCH_API_KEY", "")
+_BASE_URL = "https://jsearch.p.rapidapi.com/search"
+_HEADERS  = {
+    "X-RapidAPI-Key":  _API_KEY,
+    "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
+}
 
 
-def _parse_item(item: ET.Element) -> dict:
-    def text(tag: str) -> str:
-        el = item.find(tag)
-        return el.text.strip() if el is not None and el.text else ""
+def _days_to_param(days: int) -> str:
+    if days <= 1:  return "today"
+    if days <= 3:  return "3days"
+    if days <= 7:  return "week"
+    return "month"
 
-    def nstext(tag: str) -> str:
-        el = item.find(f"{{{_NS}}}{tag}")
-        return el.text.strip() if el is not None and el.text else ""
 
-    url   = text("link")
-    title = text("title")
+def _map_job(job: dict) -> dict | None:
+    url = job.get("job_apply_link") or job.get("job_google_link", "")
+    if not url:
+        return None
 
-    # Indeed RSS title format: "Job Title - Company" — split on " - "
-    company = nstext("company")
-    if not company and " - " in title:
-        parts   = title.rsplit(" - ", 1)
-        title   = parts[0].strip()
-        company = parts[1].strip()
+    city    = job.get("job_city", "") or ""
+    country = job.get("job_country", "") or ""
+    location = f"{city}, {country}".strip(", ")
 
     return {
-        "id":            hashlib.md5(url.encode()).hexdigest(),
-        "title":         title,
-        "company":       company or nstext("org"),
-        "location":      nstext("city") or nstext("state") or "",
-        "url":           url,
-        "description":   _clean_html(text("description")),
-        "date_posted":   _parse_date(text("pubDate")),
-        "source":        "indeed",
-        "status":        "new",
+        "id":              hashlib.md5(url.encode()).hexdigest(),
+        "title":           job.get("job_title", ""),
+        "company":         job.get("employer_name", ""),
+        "location":        location,
+        "url":             url,
+        "description":     (job.get("job_description") or "")[:500],
+        "date_posted":     (job.get("job_posted_at_datetime_utc") or "")[:10],
+        "source":          "indeed",
+        "status":          "new",
         "relevance_score": None,
-        "tech_required": [],
+        "tech_required":   [],
     }
 
 
@@ -72,36 +60,35 @@ def search_indeed(
     max_results: int = 50,
 ) -> list[dict]:
     """
-    Fetch job offers from Indeed public RSS.
+    Search jobs via JSearch (RapidAPI wrapper around Indeed + others).
 
     Args:
-        keywords:    search query (e.g. "développeur .NET fullstack")
+        keywords:    search query  (e.g. "développeur .NET fullstack")
         location:    city or country
         days:        only posts from the last N days
         max_results: cap results
     """
+    if not _API_KEY:
+        print("[JSearch] JSEARCH_API_KEY missing — skipping Indeed search")
+        return []
+
+    num_pages = min((max_results // 10) + 1, 3)
+
     params = {
-        "q":      keywords,
-        "l":      location,
-        "sort":   "date",
-        "radius": "50",
-        "fromage": str(days),
+        "query":       f"{keywords} in {location}",
+        "page":        "1",
+        "num_pages":   str(num_pages),
+        "date_posted": _days_to_param(days),
+        "language":    "fr",
     }
 
     try:
-        resp = requests.get(_BASE_URL, params=params, headers=_HEADERS, timeout=10)
+        resp = requests.get(_BASE_URL, params=params, headers=_HEADERS, timeout=12)
         resp.raise_for_status()
+        data = resp.json().get("data", [])
     except Exception as e:
-        print(f"[Indeed RSS] {e}")
+        print(f"[JSearch] {e}")
         return []
 
-    try:
-        root    = ET.fromstring(resp.content)
-        channel = root.find("channel")
-        if channel is None:
-            return []
-        items = [_parse_item(item) for item in channel.findall("item")]
-        return items[:max_results]
-    except ET.ParseError as e:
-        print(f"[Indeed RSS] XML parse error: {e}")
-        return []
+    results = [r for job in data if (r := _map_job(job))]
+    return results[:max_results]

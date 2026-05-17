@@ -1,6 +1,10 @@
 <div class="offers-page">
 
-  <!-- ── Search bar ── -->
+  <!-- ══ NOUVELLE RECHERCHE (haut) ════════════════════════════ -->
+  <div class="search-section-header">
+    <span class="section-title">NOUVELLE RECHERCHE</span>
+  </div>
+
   <div class="search-bar">
     <div class="search-field search-keywords">
       <label class="search-label">MOTS-CLÉS</label>
@@ -41,32 +45,26 @@
     </button>
   </div>
 
-  <!-- ── Stats bar ── -->
+  <!-- Stats bar -->
   <div class="stats-row" *ngIf="searched && !loading">
     <span class="stat-total">{{ offers.length }} offres</span>
     <span class="stat-sep">·</span>
-    <span class="stat-src pipe-color" *ngIf="pipelineCount">
-      {{ pipelineCount }} pipeline
-    </span>
-    <span class="stat-sep" *ngIf="pipelineCount && indeedCount">·</span>
-    <span class="stat-src indeed-color" *ngIf="indeedCount">
-      {{ indeedCount }} indeed
-    </span>
-    <span class="stat-sep" *ngIf="savedCount">·</span>
-    <span class="stat-saved" *ngIf="savedCount">{{ savedCount }} enregistrées</span>
-    <span class="stat-sep" *ngIf="appliedCount">·</span>
-    <span class="stat-applied" *ngIf="appliedCount">{{ appliedCount }} candidatées</span>
+    <span class="stat-src pipe-color"   *ngIf="pipelineCount">{{ pipelineCount }} pipeline</span>
+    <span class="stat-sep"              *ngIf="pipelineCount && indeedCount">·</span>
+    <span class="stat-src indeed-color" *ngIf="indeedCount">{{ indeedCount }} indeed</span>
+    <span class="stat-sep"              *ngIf="savedCount">·</span>
+    <span class="stat-saved"            *ngIf="savedCount">{{ savedCount }} enregistrées</span>
+    <span class="stat-sep"              *ngIf="appliedCount">·</span>
+    <span class="stat-applied"          *ngIf="appliedCount">{{ appliedCount }} candidatées</span>
   </div>
 
   <div class="error-msg" *ngIf="error">⚠ {{ error }}</div>
 
-  <!-- ── Loading ── -->
   <div class="loading-state" *ngIf="loading">
     <div class="spinner"></div>
     <span>Recherche en cours...</span>
   </div>
 
-  <!-- ── Empty state ── -->
   <div class="empty-state" *ngIf="searched && !loading && offers.length === 0 && !error">
     <div class="empty-icon">⬡</div>
     <div class="empty-title">Aucune offre trouvée</div>
@@ -75,33 +73,28 @@
     </div>
   </div>
 
-  <!-- ── Offers list ── -->
+  <!-- Résultats nouvelle recherche -->
   <div class="offers-list" *ngIf="!loading && offers.length > 0">
+    <div *ngFor="let offer of offers" class="offer-card"
+         [class.card-saved]="getStatus(offer) === 'saved'"
+         [class.card-applied]="getStatus(offer) === 'applied'">
 
-    <div *ngFor="let offer of offers" class="offer-card" [class.card-saved]="getStatus(offer) === 'saved'" [class.card-applied]="getStatus(offer) === 'applied'">
-
-      <!-- Card header -->
       <div class="card-header">
         <div class="card-meta">
           <span class="source-badge" [class.badge-pipeline]="offer.source === 'pipeline'" [class.badge-indeed]="offer.source === 'indeed'">
             {{ offer.source === 'pipeline' ? 'PIPELINE' : 'INDEED' }}
           </span>
-          <span class="card-date" *ngIf="offer.date_posted">{{ offer.date_posted }}</span>
+          <span class="card-date"  *ngIf="offer.date_posted">{{ offer.date_posted }}</span>
           <span class="card-score" *ngIf="offer.relevance_score" [style.color]="scoreColor(offer.relevance_score)">
             {{ offer.relevance_score }}/10
           </span>
         </div>
         <div class="card-status-actions">
-          <button class="status-btn" [class.status-active]="getStatus(offer) === 'saved'" (click)="setStatus(offer, 'saved')" title="Enregistrer">
-            {{ getStatus(offer) === 'saved' ? '★' : '☆' }}
-          </button>
-          <button class="status-btn" [class.status-applied]="getStatus(offer) === 'applied'" (click)="setStatus(offer, 'applied')" title="Candidaté">
-            {{ getStatus(offer) === 'applied' ? '✓' : '○' }}
-          </button>
+          <button class="status-btn" [class.status-active]="getStatus(offer) === 'saved'" (click)="setStatus(offer, 'saved')">{{ getStatus(offer) === 'saved' ? '★' : '☆' }}</button>
+          <button class="status-btn" [class.status-applied]="getStatus(offer) === 'applied'" (click)="setStatus(offer, 'applied')">{{ getStatus(offer) === 'applied' ? '✓' : '○' }}</button>
         </div>
       </div>
 
-      <!-- Card body -->
       <div class="card-body">
         <div class="offer-title">{{ offer.title }}</div>
         <div class="offer-company">
@@ -110,18 +103,15 @@
           <span class="company-loc">{{ offer.location }}</span>
         </div>
         <div class="offer-desc" *ngIf="offer.description">
-          {{ offer.description.slice(0, 200) }}{{ offer.description.length > 200 ? '...' : '' }}
+          {{ offer.description!.slice(0, 200) }}{{ offer.description!.length > 200 ? '...' : '' }}
         </div>
         <div class="tech-tags" *ngIf="offer.tech_required?.length">
           <span class="tech-tag" *ngFor="let t of (offer.tech_required || []).slice(0, 8)">{{ t }}</span>
         </div>
       </div>
 
-      <!-- Card actions -->
       <div class="card-actions">
-        <a class="btn-action btn-view" [href]="offer.url" target="_blank" rel="noopener">
-          VOIR L'OFFRE ↗
-        </a>
+        <a class="btn-action btn-view" [href]="offer.url" target="_blank" rel="noopener">VOIR L'OFFRE ↗</a>
         <button
           class="btn-action btn-letter"
           (click)="generateLetter(offer)"
@@ -131,7 +121,6 @@
         </button>
       </div>
 
-      <!-- Letter result -->
       <div class="letter-panel" *ngIf="letterResult[offer.id]">
         <div class="letter-panel-header">
           <span class="letter-label">LETTRE GÉNÉRÉE</span>
@@ -140,6 +129,69 @@
         <pre class="letter-body">{{ letterResult[offer.id] }}</pre>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ══ ANCIENNES RECHERCHES (bas) ═══════════════════════════ -->
+  <div class="stored-section" *ngIf="storedGroups.length > 0 || storedLoading">
+
+    <div class="section-header">
+      <span class="section-title">ANCIENNES RECHERCHES</span>
+      <span class="section-count" *ngIf="storedGroups.length">{{ storedGroups.length }} groupe{{ storedGroups.length > 1 ? 's' : '' }}</span>
+      <div class="spinner spinner-sm" *ngIf="storedLoading"></div>
+    </div>
+
+    <div class="groups-list">
+      <div *ngFor="let group of storedGroups" class="group-item">
+
+        <div class="group-header" (click)="toggleGroup(group)" [class.group-expanded]="isExpanded(group)">
+          <div class="group-meta">
+            <span class="group-keyword">{{ group.keywords || '(toutes)' }}</span>
+            <span class="group-sep" *ngIf="group.location">·</span>
+            <span class="group-location">{{ group.location }}</span>
+          </div>
+          <div class="group-right">
+            <span class="group-count-badge">{{ group.count }} offre{{ group.count > 1 ? 's' : '' }}</span>
+            <span class="group-chevron">{{ isExpanded(group) ? '▲' : '▼' }}</span>
+          </div>
+        </div>
+
+        <div class="group-offers" *ngIf="isExpanded(group)">
+          <div *ngFor="let offer of group.offers" class="offer-card"
+               [class.card-saved]="getStatus(offer) === 'saved'"
+               [class.card-applied]="getStatus(offer) === 'applied'">
+
+            <div class="card-header">
+              <div class="card-meta">
+                <span class="source-badge badge-indeed">INDEED</span>
+                <span class="card-date" *ngIf="offer.date_posted">{{ offer.date_posted }}</span>
+              </div>
+              <div class="card-status-actions">
+                <button class="status-btn" [class.status-active]="getStatus(offer) === 'saved'" (click)="setStatus(offer, 'saved')">{{ getStatus(offer) === 'saved' ? '★' : '☆' }}</button>
+                <button class="status-btn" [class.status-applied]="getStatus(offer) === 'applied'" (click)="setStatus(offer, 'applied')">{{ getStatus(offer) === 'applied' ? '✓' : '○' }}</button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="offer-title">{{ offer.title }}</div>
+              <div class="offer-company">
+                <span class="company-name">{{ offer.company }}</span>
+                <span class="company-sep" *ngIf="offer.location">·</span>
+                <span class="company-loc">{{ offer.location }}</span>
+              </div>
+              <div class="offer-desc" *ngIf="offer.description">
+                {{ offer.description!.slice(0, 200) }}{{ offer.description!.length > 200 ? '...' : '' }}
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <a class="btn-action btn-view" [href]="offer.url" target="_blank" rel="noopener">VOIR L'OFFRE ↗</a>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 

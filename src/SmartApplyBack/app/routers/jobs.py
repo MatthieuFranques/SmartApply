@@ -4,6 +4,11 @@ from app.services.auth.dependency import get_current_user
 from app.models.user import User
 from app.services.jobs.from_pipeline import get_offers_from_pipeline
 from app.services.jobs.indeed_rss import search_indeed
+from app.services.jobs.adzuna import search_adzuna
+from app.services.jobs.search_cache import get_cached, set_cached
+from app.repositories.job_offer_repository import (
+    upsert_offers, find_offers, find_offers_grouped, count_offers,
+)
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
@@ -18,23 +23,38 @@ def get_offers(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Returns job offers from multiple sources.
-
     Sources:
-    - pipeline: offers found during enrichment phase (from MongoDB)
-    - indeed:   fresh offers from Indeed RSS (requires keywords)
-    - all:      both combined (default)
+    - pipeline: DB only (enriched companies from pipeline)
+    - indeed + keywords: external APIs (cache 12h → JSearch + Adzuna) → persisted 90 days
+    - indeed, no keywords: stored offers from DB
+    - all: both combined
     """
     results: list[dict] = []
 
     if source in ("all", "pipeline"):
         results += get_offers_from_pipeline(current_user.google_id)
 
-    if source in ("all", "indeed") and keywords.strip():
+    if source in ("all", "indeed"):
+        kw  = keywords.strip()
         loc = location.strip() or "France"
-        results += search_indeed(keywords.strip(), loc, days, limit)
 
-    # Dedup by id (pipeline + indeed may overlap for same URL)
+        if kw:
+            cached = get_cached(kw, loc, days)
+            if cached is not None:
+                results += cached
+            else:
+                external = []
+                external += search_indeed(kw, loc, days, limit)
+                external += search_adzuna(kw, loc, days, limit)
+
+                if external:
+                    set_cached(kw, loc, days, external)
+                    upsert_offers(current_user.google_id, external, kw, loc)
+
+                results += external
+        else:
+            results += find_offers(current_user.google_id)
+
     seen: set[str] = set()
     unique = []
     for offer in results:
@@ -43,3 +63,18 @@ def get_offers(
             unique.append(offer)
 
     return unique[:limit]
+
+
+@router.get("/stored/grouped")
+def get_stored_grouped(current_user: User = Depends(get_current_user)):
+    """
+    Return all stored external offers grouped by search query.
+    Used to populate the 'previous searches' section on page load.
+    Each group: { keywords, location, count, offers[] }
+    """
+    return find_offers_grouped(current_user.google_id)
+
+
+@router.get("/stored/count")
+def get_stored_count(current_user: User = Depends(get_current_user)):
+    return {"count": count_offers(current_user.google_id)}

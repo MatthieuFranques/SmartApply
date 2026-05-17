@@ -19,6 +19,13 @@ export interface Offer {
   secteur?:        string;
 }
 
+interface StoredGroup {
+  keywords: string;
+  location: string;
+  count:    number;
+  offers:   Offer[];
+}
+
 type SourceFilter = 'all' | 'pipeline' | 'indeed';
 
 @Component({
@@ -32,31 +39,46 @@ export class OffersComponent implements OnInit {
 
   private readonly api = 'http://localhost:8000';
 
-  // ── Search params ────────────────────────────────────────
-  keywords  = '';
-  location  = '';
-  days      = 30;
-  source    : SourceFilter = 'all';
+  // ── Search params ────────────────────────────────────────────
+  keywords = '';
+  location = '';
+  days     = 30;
+  source: SourceFilter = 'all';
 
-  // ── State ────────────────────────────────────────────────
-  offers    : Offer[] = [];
-  loading   = false;
-  searched  = false;
-  error     = '';
+  // ── Search results ───────────────────────────────────────────
+  offers:   Offer[] = [];
+  loading  = false;
+  searched = false;
+  error    = '';
 
-  // ── Local status overrides (no backend needed) ───────────
-  private statusMap: Map<string, Offer['status']> = new Map();
+  // ── Stored groups (loaded on init) ───────────────────────────
+  storedGroups:      StoredGroup[] = [];
+  storedLoading      = false;
+  expandedGroupKey   = '';
+
+  // ── Local status overrides ───────────────────────────────────
+  private statusMap = new Map<string, Offer['status']>();
 
   constructor(private readonly http: HttpClient) {}
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.loadStoredGroups();
+  }
 
-  // ── Computed ─────────────────────────────────────────────
+  // ── Computed ─────────────────────────────────────────────────
   get pipelineCount(): number { return this.offers.filter(o => o.source === 'pipeline').length; }
   get indeedCount():   number { return this.offers.filter(o => o.source === 'indeed').length;   }
+  get savedCount():    number { return this.offers.filter(o => this.getStatus(o) === 'saved').length; }
+  get appliedCount():  number { return this.offers.filter(o => this.getStatus(o) === 'applied').length; }
 
-  get savedCount():   number { return this.offers.filter(o => this.getStatus(o) === 'saved').length; }
-  get appliedCount(): number { return this.offers.filter(o => this.getStatus(o) === 'applied').length; }
+  groupKey(g: StoredGroup): string { return `${g.keywords}||${g.location}`; }
+
+  isExpanded(g: StoredGroup): boolean { return this.expandedGroupKey === this.groupKey(g); }
+
+  toggleGroup(g: StoredGroup): void {
+    const key = this.groupKey(g);
+    this.expandedGroupKey = this.expandedGroupKey === key ? '' : key;
+  }
 
   getStatus(offer: Offer): Offer['status'] {
     return this.statusMap.get(offer.id) ?? offer.status;
@@ -67,10 +89,20 @@ export class OffersComponent implements OnInit {
     this.statusMap.set(offer.id, current === status ? 'new' : status);
   }
 
-  // ── Load ─────────────────────────────────────────────────
+  // ── Load stored groups (on init) ─────────────────────────────
+  loadStoredGroups(): void {
+    this.storedLoading = true;
+    this.http.get<StoredGroup[]>(`${this.api}/jobs/stored/grouped`, { withCredentials: true }).subscribe({
+      next:  (data) => { this.storedGroups = data; this.storedLoading = false; },
+      error: ()     => { this.storedLoading = false; },
+    });
+  }
+
+  // ── Search (API / cache) ─────────────────────────────────────
   load(): void {
-    this.loading = true;
-    this.error   = '';
+    this.loading  = true;
+    this.error    = '';
+    this.searched = false;
 
     const params: Record<string, string> = {
       source: this.source,
@@ -84,19 +116,21 @@ export class OffersComponent implements OnInit {
 
     this.http.get<Offer[]>(`${this.api}/jobs/offers?${query}`, { withCredentials: true }).subscribe({
       next: (data) => {
-        this.offers  = data;
-        this.loading = false;
+        this.offers   = data;
+        this.loading  = false;
         this.searched = true;
+        // Refresh stored groups in case new offers were saved
+        if (this.keywords.trim()) this.loadStoredGroups();
       },
       error: (err) => {
-        this.loading = false;
-        this.error   = err?.error?.detail || `Erreur ${err.status}`;
+        this.loading  = false;
+        this.error    = err?.error?.detail || `Erreur ${err.status}`;
         this.searched = true;
       },
     });
   }
 
-  // ── Letter generation ────────────────────────────────────
+  // ── Letter generation ────────────────────────────────────────
   letterLoading: Record<string, boolean> = {};
   letterResult:  Record<string, string>  = {};
 
@@ -110,7 +144,7 @@ export class OffersComponent implements OnInit {
       { withCredentials: true },
     ).subscribe({
       next:  (r) => { this.letterLoading[offer.id] = false; this.letterResult[offer.id] = r.letter; },
-      error: () => { this.letterLoading[offer.id] = false; this.letterResult[offer.id] = '⚠ Erreur génération lettre'; },
+      error: ()  => { this.letterLoading[offer.id] = false; this.letterResult[offer.id] = '⚠ Erreur génération lettre'; },
     });
   }
 

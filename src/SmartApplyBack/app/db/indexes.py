@@ -15,3 +15,10 @@ def create_indexes() -> None:
     db["cover_letters"].create_index("user_id")
     db["applications"].create_index("user_id")
     db["applications"].create_index([("user_id", 1), ("thread_id", 1)], unique=True)
+
+    # TTL index — MongoDB auto-deletes expired job search cache entries
+    db["job_search_cache"].create_index("expires_at", expireAfterSeconds=0)
+
+    # job_offers — persistent offer store, TTL 90 days from date_posted
+    db["job_offers"].create_index([("user_id", 1), ("offer_id", 1)], unique=True)
+    db["job_offers"].create_index("expires_at", expireAfterSeconds=0)
