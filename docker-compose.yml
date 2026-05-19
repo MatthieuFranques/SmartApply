@@ -37,6 +37,22 @@ services:
         limits:
           memory: 1G
 
+  rag:
+    build: ./src/SmartApplyRag
+    container_name: smartapply-rag
+    ports:
+      - "8001:8001"
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      CHROMA_PATH: /app/data/chroma
+    volumes:
+      - rag_data:/app/data/chroma
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
   # frontend:
   #   build: ./src/SmartApplyFront
   #   container_name: smartapply-ui
@@ -54,3 +70,4 @@ services:
 
 volumes:
   mongo_data:
+  rag_data:
