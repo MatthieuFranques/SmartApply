@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import COLLECTIONS, DEFAULT_USER_ID
-from app.routers import index, ingest, retrieve
+from app.routers import generate, index, ingest, retrieve
 from app.services.embedder import check_embed_model
 from app.services.ingestor import ingest_inbox
 from app.services.vector_store import collection_count
@@ -31,6 +31,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(generate.router)
 app.include_router(index.router)
 app.include_router(retrieve.router)
 app.include_router(ingest.router)

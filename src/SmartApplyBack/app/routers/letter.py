@@ -1,144 +1,114 @@
 import datetime
 import json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query, Depends
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from app.services.generate_letter.generate_letter_generator import (
-    check_ollama,
-    determine_mode,
-    generate_contact_form,
-    generate_letter,
-    load_json,
-    save_contact_form,
-    save_letter,
-)
 from app.models.letter import (
     DEFAULT_MODEL,
-    OUTPUT_DIR,
     INPUT_FILE,
+    OUTPUT_DIR,
     CompanySearchRequest,
     GenerateRequest,
     GenerateResponse,
-    LetterItem,
 )
-from app.services.auth.dependency import get_current_user
+from app.models.user import User
 from app.repositories.job_repository import JobRepository
 from app.repositories.profile_repository import UserProfileRepository
-from app.models.user import User
+from app.services.auth.dependency import get_current_user
+from app.services.generate_letter.generate_letter_generator import (
+    check_rag,
+    determine_mode,
+    generate_contact_form,
+    generate_letter,
+)
 
 router = APIRouter(prefix="/letter", tags=["letter"])
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Helpers (Inchangés mais inclus pour la cohérence) ─────────────────────────
 
-def find_company(name: str, input_file: str | None) -> dict:
+def _find_company(name: str, input_file: str | None) -> dict:
     resolved_file = Path(input_file) if input_file else INPUT_FILE
-    
-    # DEBUG: On vérifie l'existence réelle avant de charger
     if not resolved_file.exists():
-        # On liste les fichiers présents pour t'aider à debugger
-        parent_dir = resolved_file.parent
-        existing_files = list(parent_dir.glob("*")) if parent_dir.exists() else "Dossier parent introuvable"
+        parent = resolved_file.parent
+        files = [f.name for f in parent.glob("*")] if parent.exists() else []
         raise HTTPException(
-            status_code=404, 
-            detail={
-                "error": "Fichier introuvable",
-                "asked_path": str(resolved_file.absolute()),
-                "directory_content": [f.name for f in existing_files] if isinstance(existing_files, list) else existing_files
-            }
+            status_code=404,
+            detail={"error": "Fichier introuvable", "path": str(resolved_file), "files": files},
         )
-
     try:
-        companies = load_json(resolved_file)
+        companies = json.loads(resolved_file.read_text(encoding="utf-8"))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Erreur lecture JSON : {e}")
 
-    # Recherche
     matches = [c for c in companies if name.lower() in c.get("nom", "").lower()]
-    
     if not matches:
-        # On donne la liste des noms dispos pour corriger le curl
-        available_names = [c.get("nom") for c in companies[:5]] # top 5
         raise HTTPException(
-            status_code=404, 
-            detail=f"Entreprise '{name}' non trouvée. Exemples dispo : {available_names}"
+            status_code=404,
+            detail=f"Entreprise '{name}' non trouvée. Exemples : {[c.get('nom') for c in companies[:5]]}",
         )
-        
     if len(matches) > 1:
-        raise HTTPException(status_code=409, detail="Plusieurs entreprises trouvées.")
-        
+        raise HTTPException(status_code=409, detail="Plusieurs entreprises correspondent.")
     return matches[0]
 
 
-def resolve_output_dir(output_dir: str) -> Path:
-    path = Path(output_dir)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-def find_generated_file(name: str, output_dir: Path) -> Path:
+def _find_generated_file(name: str, output_dir: Path) -> Path:
     slug = name.lower().replace(" ", "_")
     candidates = list(output_dir.glob(f"{slug}*.txt")) + list(output_dir.glob(f"{slug}*.json"))
     if not candidates:
         raise HTTPException(status_code=404, detail=f"Aucun fichier pour '{name}'.")
     return max(candidates, key=lambda p: p.stat().st_mtime)
 
-# ── Routes ────────────────────────────────────────────────────────────────────
 
-# Correction : On définit la route sur "" (qui devient /letter avec le préfixe)
-# ou sur "/" (qui devient /letter/).
 @router.post("/", response_model=GenerateResponse, status_code=201)
 def generate(body: GenerateRequest):
-    if not check_ollama():
-        raise HTTPException(status_code=503, detail="Ollama inaccessible.")
+    if not check_rag():
+        raise HTTPException(status_code=503, detail="Service RAG inaccessible.")
 
-    company    = find_company(body.name, body.input_file)
-    output_dir = resolve_output_dir(body.output_dir)
+    company    = _find_company(body.name, body.input_file)
+    output_dir = Path(body.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     mode       = determine_mode(company)
 
-    # Nettoyage du nom pour le nom de fichier (on enlève les espaces/caractères spéciaux)
     safe_name = "".join(x for x in company["nom"] if x.isalnum() or x in "._- ")
-    filename  = f"{safe_name}.json"
-    filepath  = output_dir / filename
+    filepath  = output_dir / f"{safe_name}.json"
 
     try:
-        # On génère le contenu
         if mode == "contact":
-            content = generate_contact_form(company, body.model)
+            content    = generate_contact_form(company, body.model)
             mode_label = "contact"
         else:
-            content = generate_letter(company, body.model)
-            offers = company.get("job_offers", [])
-            mode_label = "letter_targeted" if offers else "letter_spontaneous"
+            content    = generate_letter(company, body.model)
+            mode_label = "letter_targeted" if company.get("job_offers") else "letter_spontaneous"
 
-        # Création de l'objet JSON complet pour l'entreprise
-        data_to_save = {
-            "company": company["nom"],
-            "date": datetime.date.today().isoformat(),
-            "mode": mode_label,
-            "model": body.model,
-            "content": content,
-            "metadata": {
-                "domaine": company.get("domaine"),
-                "ville": company.get("ville")
-            }
-        }
-
-        # Sauvegarde directe en format JSON
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data_to_save, f, indent=4, ensure_ascii=False)
-
+        filepath.write_text(
+            json.dumps(
+                {
+                    "company":  company["nom"],
+                    "date":     datetime.date.today().isoformat(),
+                    "mode":     mode_label,
+                    "model":    body.model,
+                    "content":  content,
+                    "metadata": {"domaine": company.get("domaine"), "ville": company.get("ville")},
+                },
+                ensure_ascii=False,
+                indent=4,
+            ),
+            encoding="utf-8",
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la sauvegarde : {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     return GenerateResponse(
         company=company["nom"],
-        filename=filename,
+        filename=filepath.name,
         mode=mode_label,
         model=body.model,
         output_dir=str(output_dir),
     )
+
 
 @router.get("/{name}")
 def generate_letter_for_company(
@@ -146,14 +116,13 @@ def generate_letter_for_company(
     model: str = Query(default=DEFAULT_MODEL),
     current_user: User = Depends(get_current_user),
 ):
-    if not check_ollama():
-        raise HTTPException(status_code=503, detail="Ollama inaccessible")
+    if not check_rag():
+        raise HTTPException(status_code=503, detail="Service RAG inaccessible")
 
     repo    = JobRepository()
     decoded = name.replace("%20", " ")
     job     = next(
-        (j for j in repo.find_by_user(current_user.google_id)
-         if j.nom.lower() == decoded.lower()),
+        (j for j in repo.find_by_user(current_user.google_id) if j.nom.lower() == decoded.lower()),
         None,
     )
     if not job:
@@ -164,23 +133,26 @@ def generate_letter_for_company(
     reference_letter = user_profile.pop("reference_letter", "")
     user_profile.pop("cv_text", None)
 
+    job_dict = job.model_dump(mode="json")
+    mode = determine_mode(job_dict)
+
     try:
-        letter_text = generate_letter(job.model_dump(), model, user_profile, reference_letter)
+        if mode == "contact":
+            result = generate_contact_form(job_dict, model, user_profile, current_user.google_id)
+            return {"letter": None, "contact_form": result, "mode": "contact"}
+        else:
+            letter_text = generate_letter(job_dict, model, user_profile, reference_letter, current_user.google_id)
+            return {"letter": letter_text, "mode": "letter"}
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Ollama indisponible : {e}")
-
-    return {"letter": letter_text}
+        raise HTTPException(status_code=503, detail=f"RAG indisponible : {e}")
 
 
-@router.get("/details")  # On change un peu l'URL pour ne pas confondre avec /{name}
-def get_letter_by_body(request: CompanySearchRequest, output_dir: str = Query(default=str(OUTPUT_DIR))):
-    # On utilise find_generated_file avec le nom passé dans le body
-    path = find_generated_file(request.name, Path(output_dir))
-    
-    # Si c'est un JSON, on peut soit renvoyer le fichier, 
-    # soit renvoyer directement le contenu JSON structuré
+@router.get("/details")
+def get_letter_by_body(
+    request: CompanySearchRequest,
+    output_dir: str = Query(default=str(OUTPUT_DIR)),
+):
+    path = _find_generated_file(request.name, Path(output_dir))
     if path.suffix == ".json":
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-            
+        return json.loads(path.read_text(encoding="utf-8"))
     return FileResponse(path, media_type="text/plain; charset=utf-8", filename=path.name)

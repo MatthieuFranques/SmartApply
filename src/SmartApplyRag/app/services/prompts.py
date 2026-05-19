@@ -1,34 +1,33 @@
-# ============================================================
-# prompts.py
-# Construction des prompts — 2 passes de génération
-# ============================================================
+def build_header(profile: dict) -> str:
+    parts = [profile.get("prenom_nom", "")]
+    if profile.get("titre"):
+        parts.append(profile["titre"])
+    contact = " | ".join(filter(None, [profile.get("telephone"), profile.get("email")]))
+    if contact:
+        parts.append(contact)
+    if profile.get("portfolio"):
+        parts.append(f"Portfolio : {profile['portfolio']}")
+    if profile.get("github"):
+        parts.append(f"GitHub : {profile['github']}")
+    return "\n".join(parts)
 
-from app.services.generate_letter.generate_letter_config import REFERENCE_LETTER as _DEFAULT_REFERENCE_LETTER
 
-
-def build_analysis_prompt(company: dict, profile: dict) -> str:
-    """
-    PASSE 1 — Analyse structurée profil vs entreprise.
-    Temperature basse recommandée (0.3).
-    """
+def build_analysis_prompt(company: dict, profile: dict, cv_chunks: list[str] | None = None) -> str:
     tech_list   = ", ".join(company.get("tech_keywords",    [])[:10]) or "non détectées"
     job_tech    = ", ".join(company.get("job_keywords",     [])[:8])  or "non disponibles"
     key_phrases = "\n".join(f"  - {p}" for p in company.get("key_phrases", [])[:4])
     description = company.get("description", "") or company.get("about_text", "")[:400]
     founded     = company.get("founded_hint", "") or "inconnue"
 
-    # Résumé des offres pertinentes
     offers = company.get("job_offers", [])
     if offers:
-        best_offers = offers[:3]  # Top 3 seulement
         offers_summary = "\n".join(
-            f"  - [{o['relevance_score']}/10] {o['title']} | technos: {', '.join(o['tech_required'][:5]) or 'non précisées'}"
-            for o in best_offers
+            f"  - [{o['relevance_score']}/10] {o['title']} | technos: {', '.join(o.get('tech_required', [])[:5]) or 'non précisées'}"
+            for o in offers[:3]
         )
     else:
         offers_summary = "  Aucune offre parsée"
 
-    # Infos formulaire de contact
     contact = company.get("contact_form", {})
     contact_info = ""
     if contact:
@@ -37,6 +36,12 @@ def build_analysis_prompt(company: dict, profile: dict) -> str:
             f"Upload fichier : {'oui' if contact.get('has_file_upload') else 'non'}\n"
             f"Email direct : {contact.get('email_found', 'non trouvé')}"
         )
+
+    # Enrichissement RAG : chunks CV pertinents
+    cv_context = ""
+    if cv_chunks:
+        cv_context = "\n=== EXTRAITS CV PERTINENTS (RAG) ===\n"
+        cv_context += "\n---\n".join(cv_chunks[:3])
 
     return f"""Tu es un directeur du recrutement avec 15 ans d'expérience, spécialisé dans les profils tech.
 Ta mission : analyser la compatibilité entre un candidat et une entreprise, et identifier les arguments les plus percutants.
@@ -61,13 +66,14 @@ Offres d'emploi détectées (triées par pertinence) :
 {f"Formulaire de contact :{chr(10)}{contact_info}" if contact_info else ""}
 
 === CANDIDAT ===
-Diplôme : {profile['diplome']} — {profile['ecole']} ({profile['annee']})
-Expériences : {profile['experiences']}
-Projet phare : {profile['projet_phare']}
-Compétences : {profile['competences']}
-Soft skills : {profile['soft_skills']}
-Recherche : {profile['recherche']}
-Localisation : {profile['ville']}
+Diplôme : {profile.get('diplome', '')} — {profile.get('ecole', '')} ({profile.get('annee', '')})
+Expériences : {profile.get('experiences', '')}
+Projet phare : {profile.get('projet_phare', '')}
+Compétences : {profile.get('competences', '')}
+Soft skills : {profile.get('soft_skills', '')}
+Recherche : {profile.get('recherche', '')}
+Localisation : {profile.get('ville', '')}
+{cv_context}
 
 === ANALYSE DEMANDÉE ===
 Réponds exactement dans ce format :
@@ -93,16 +99,13 @@ MODE:
 [OFFRE si une offre pertinente existe (score >= 5) | SPONTANEE sinon]"""
 
 
-def build_letter_prompt(company: dict, profile: dict, analysis: str, reference_letter: str = "") -> str:
-    """
-    PASSE 2 — Rédaction de la lettre.
-    Temperature recommandée (0.7).
-
-    Adapte automatiquement l'objet selon le MODE détecté dans l'analyse :
-    - OFFRE      → mentionne l'intitulé exact du poste
-    - SPONTANEE  → candidature spontanée générique
-    """
-    # Meilleure offre (si disponible)
+def build_letter_prompt(
+    company: dict,
+    profile: dict,
+    analysis: str,
+    reference_letter: str = "",
+    rag_context: dict | None = None,
+) -> str:
     offers = company.get("job_offers", [])
     best_offer_title = offers[0]["title"] if offers else ""
     best_offer_url   = offers[0]["url"]   if offers else ""
@@ -115,15 +118,28 @@ def build_letter_prompt(company: dict, profile: dict, analysis: str, reference_l
             f"Technos requises : {', '.join(offers[0].get('tech_required', [])[:6])}"
         )
 
-    ref = reference_letter.strip() if reference_letter.strip() else _DEFAULT_REFERENCE_LETTER
+    # Sélection de la référence : RAG > paramètre > aucune
+    ref_section = ""
+    if rag_context and rag_context.get("reference_letters"):
+        ref = rag_context["reference_letters"][0]
+        ref_section = f"=== LETTRE DE RÉFÉRENCE (RAG) ===\n{ref}\n=== FIN DE RÉFÉRENCE ==="
+    elif reference_letter.strip():
+        ref_section = f"=== LETTRE DE RÉFÉRENCE ===\n{reference_letter.strip()}\n=== FIN DE RÉFÉRENCE ==="
+
+    # Lettres similaires passées comme exemples de style supplémentaires
+    similar_section = ""
+    if rag_context and rag_context.get("similar_letters"):
+        similar_section = "=== LETTRES PASSÉES SIMILAIRES (même secteur/stack — style à reproduire) ===\n"
+        similar_section += "\n---\n".join(rag_context["similar_letters"][:2])
+        similar_section += "\n=== FIN DES EXEMPLES ==="
 
     return f"""Tu es un rédacteur expert en lettres de motivation pour profils tech en France/Belgique.
 
 Ta seule tâche : rédiger une lettre de motivation en français.
 
-=== LETTRE DE RÉFÉRENCE (ton, style, structure à reproduire) ===
-{ref}
-=== FIN DE RÉFÉRENCE ===
+{ref_section}
+
+{similar_section}
 
 === ANALYSE PRÉALABLE ===
 {analysis}
@@ -132,18 +148,18 @@ Ta seule tâche : rédiger une lettre de motivation en français.
 === CONTEXTE ===
 Entreprise : {company['nom']} | {company['secteur']} | {company['ville']}
 {offer_context if offer_context else "Mode : candidature spontanée"}
-Candidat : {profile['prenom_nom']} — {profile['diplome']} — {profile['ecole']} {profile['annee']}
-Portfolio : {profile['portfolio']}
-GitHub : {profile['github']}
+Candidat : {profile.get('prenom_nom', '')} — {profile.get('diplome', '')} — {profile.get('ecole', '')} {profile.get('annee', '')}
+Portfolio : {profile.get('portfolio', '')}
+GitHub : {profile.get('github', '')}
 
 === STRUCTURE OBLIGATOIRE ===
 1. "Objet :" — si MODE=OFFRE : "Candidature – [intitulé exact du poste] | {company['nom']}"
-              si MODE=SPONTANEE : "Candidature spontanée – Développeur .NET/Fullstack | Disponible immédiatement"
+              si MODE=SPONTANEE : "Candidature spontanée – {profile.get('recherche', 'Développeur')} | Disponible immédiatement"
 2. Formule d'appel selon taille détectée
 3. §1 Intro (3 phrases) : accroche sur {company['nom']} → qui je suis → disponibilité
 4. §2 Expérience (4-5 phrases) : EXPERIENCES_CLES + ANGLE_DIFFERENTIANT de l'analyse
 5. "Ce qui me distingue :" + 3 bullets des POINTS_FORTS
-6. §3 Closing : Portfolio ({profile['portfolio']}) + GitHub ({profile['github']}) + dispo entretien
+6. §3 Closing : Portfolio ({profile.get('portfolio', '')}) + GitHub ({profile.get('github', '')}) + dispo entretien
 7. "Cordialement,"
 
 === INTERDICTIONS ABSOLUES ===
@@ -157,10 +173,6 @@ GitHub : {profile['github']}
 
 
 def build_contact_form_prompt(company: dict, profile: dict) -> str:
-    """
-    Prompt alternatif quand pas d'offre mais formulaire de contact détecté.
-    Génère un JSON avec les informations à remplir dans le formulaire.
-    """
     contact = company.get("contact_form", {})
     fields  = contact.get("fields", [])
     fields_desc = "\n".join(
@@ -187,13 +199,13 @@ Champs détectés :
 {fields_desc}
 
 === CANDIDAT ===
-Nom : {profile['prenom_nom']}
-Diplôme : {profile['diplome']} — {profile['ecole']} ({profile['annee']})
-Compétences : {profile['competences']}
-GitHub : {profile['github']}
-Portfolio : {profile['portfolio']}
-Email : {profile['email']}
-Téléphone : {profile['telephone']}
+Nom : {profile.get('prenom_nom', '')}
+Diplôme : {profile.get('diplome', '')} — {profile.get('ecole', '')} ({profile.get('annee', '')})
+Compétences : {profile.get('competences', '')}
+GitHub : {profile.get('github', '')}
+Portfolio : {profile.get('portfolio', '')}
+Email : {profile.get('email', '')}
+Téléphone : {profile.get('telephone', '')}
 
 === TÂCHE ===
 Génère un JSON avec le contenu à remplir pour chaque champ du formulaire.
@@ -202,11 +214,11 @@ Format de réponse (JSON uniquement, sans markdown) :
   "objet": "...",
   "message": "...(150-200 mots, direct et professionnel)...",
   "champs": {{
-    "nom": "{profile['prenom_nom']}",
-    "email": "{profile['email']}",
-    "telephone": "{profile['telephone']}",
+    "nom": "{profile.get('prenom_nom', '')}",
+    "email": "{profile.get('email', '')}",
+    "telephone": "{profile.get('telephone', '')}",
     "message": "...(même contenu que message ci-dessus)..."
   }},
-  "fichiers_a_joindre": ["CV", "Portfolio"] si upload possible sinon [],
+  "fichiers_a_joindre": ["CV", "Portfolio"],
   "note": "conseil spécifique pour ce formulaire"
 }}"""

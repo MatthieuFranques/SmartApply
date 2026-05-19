@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import chromadb
 from app.config import CHROMA_PATH, COLLECTIONS
 from app.services.embedder import embed_text

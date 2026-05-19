@@ -23,6 +23,7 @@ charset-normalizer
 
 # IA
 ollama
+httpx
 
 # CV PARSING & FILE UPLOAD
 pypdf

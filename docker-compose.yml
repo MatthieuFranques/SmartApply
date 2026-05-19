@@ -11,15 +11,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 512M
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin"]
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
 
   # Backend : 
 
@@ -29,13 +29,15 @@ services:
     ports:
       - "8000:8000"
     env_file: ./src/SmartApplyBack/.env
+    environment:
+      RAG_URL: http://rag:8001
     depends_on:
       mongodb:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 512M
 
   rag:
     build: ./src/SmartApplyRag
@@ -45,13 +47,16 @@ services:
     environment:
       OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
       CHROMA_PATH: /app/data/chroma
+      INBOX_PATH: /app/data/inbox
     volumes:
       - rag_data:/app/data/chroma
+      - rag_inbox:/app/data/inbox
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 512M
 
   # frontend:
   #   build: ./src/SmartApplyFront
@@ -71,3 +76,4 @@ services:
 volumes:
   mongo_data:
   rag_data:
+  rag_inbox:

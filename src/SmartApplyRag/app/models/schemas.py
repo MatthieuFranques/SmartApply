@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from app.config import OLLAMA_MODEL
 
 
 class IndexLetterRequest(BaseModel):
@@ -41,3 +42,24 @@ class RetrieveContextResponse(BaseModel):
     cv_chunks: list[str] = []
     reference_letters: list[str] = []
     has_context: bool = False
+
+
+class GenerateLetterRequest(BaseModel):
+    company: dict
+    profile: dict
+    model: str = OLLAMA_MODEL
+    reference_letter: str = ""
+    user_id: str = "default"
+
+
+class GenerateLetterResponse(BaseModel):
+    letter: str
+    mode: str
+    model: str
+
+
+class GenerateContactRequest(BaseModel):
+    company: dict
+    profile: dict
+    model: str = OLLAMA_MODEL
+    user_id: str = "default"

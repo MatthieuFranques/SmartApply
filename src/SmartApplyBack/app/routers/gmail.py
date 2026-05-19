@@ -32,12 +32,12 @@ def create_draft(
     if not job:
         raise HTTPException(status_code=404, detail="Entreprise introuvable")
 
-    company = job.model_dump()
+    company = job.model_dump(mode="json")
 
     try:
-        letter_text = generate_letter(company, body.model)
+        letter_text = generate_letter(company, body.model, user_id=current_user.google_id)
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Ollama indisponible : {e}")
+        raise HTTPException(status_code=503, detail=f"RAG indisponible : {e}")
 
     contact_form = company.get("contact_form") or {}
     to           = contact_form.get("email_found", "")

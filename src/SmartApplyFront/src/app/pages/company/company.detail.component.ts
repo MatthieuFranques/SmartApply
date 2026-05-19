@@ -93,10 +93,24 @@ export class CompanyDetailComponent implements OnChanges {
     this.letterContent    = '';
     const name = encodeURIComponent(this.company.nom);
 
-    this.http.get<{ letter: string }>(`${this.api}/letter/${name}`).subscribe({
+    this.http.get<{ letter: string | null; contact_form?: Record<string, unknown>; mode: string }>(
+      `${this.api}/letter/${name}`,
+      { withCredentials: true },
+    ).subscribe({
       next: (res) => {
         this.letterLoading = false;
-        this.letterContent = res.letter ?? JSON.stringify(res, null, 2);
+        if (res.letter) {
+          this.letterContent = res.letter;
+        } else if (res.contact_form) {
+          const cf = res.contact_form as Record<string, unknown>;
+          if (cf['raw_response']) {
+            this.letterContent = cf['raw_response'] as string;
+          } else {
+            this.letterContent = Object.entries(cf)
+              .map(([k, v]) => `${k} : ${v}`)
+              .join('\n\n');
+          }
+        }
       },
       error: (err) => {
         this.letterLoading = false;
