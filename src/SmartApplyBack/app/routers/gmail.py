@@ -2,7 +2,11 @@ import os
 from fastapi import APIRouter, HTTPException, Query, Depends
 
 from app.services.gmail.gmail import fetch_emails_by_label, create_gmail_draft
-from app.services.generate_letter.generate_letter_generator import generate_letter
+from app.services.generate_letter.generate_letter_generator import (
+    determine_mode,
+    generate_contact_form,
+    generate_letter,
+)
 from app.services.auth.dependency import get_current_user
 from app.repositories.job_repository import JobRepository
 from app.models.gmail import GmailMessage, DraftRequest, DraftResponse
@@ -33,14 +37,19 @@ def create_draft(
         raise HTTPException(status_code=404, detail="Entreprise introuvable")
 
     company = job.model_dump(mode="json")
-
-    try:
-        letter_text = generate_letter(company, body.model, user_id=current_user.google_id)
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"RAG indisponible : {e}")
+    mode = determine_mode(company)
 
     contact_form = company.get("contact_form") or {}
     to           = contact_form.get("email_found", "")
+
+    try:
+        if mode == "contact":
+            contact_data = generate_contact_form(company, body.model, user_id=current_user.google_id)
+            letter_text  = contact_data.get("message") or contact_data.get("raw_response") or str(contact_data)
+        else:
+            letter_text = generate_letter(company, body.model, user_id=current_user.google_id)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"RAG indisponible : {e}")
 
     job_offers = company.get("job_offers") or []
     if job_offers:
