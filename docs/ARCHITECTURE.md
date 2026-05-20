@@ -3,84 +3,131 @@
 This document describes the high-level architecture of **SmartApply**.
 
 ## Component Overview
-- **Frontend**: Angular 18 Single Page Application (SPA).
-- **Backend**: FastAPI (Python 3.11) asynchronous REST API.
-<!-- - **Database**: MongoDB (NoSQL) for flexible job offer schemas. -->
-- **AI Engine**: Ollama (Running locally on Host OS).
 
+| Component | Technology | Role |
+|---|---|---|
+| Frontend | Angular 18 SPA | UI — pipeline dashboard + application tracker |
+| Gateway | nginx 1.27 | Reverse proxy, single entry point on port 80 |
+| Auth | FastAPI (Python 3.11) — port 8000 | Google OAuth2, JWT sessions, user profile |
+| Pipeline | FastAPI (Python 3.11) — port 8002 | Scraping → filter → enrich → letter generation |
+| Jobs | FastAPI (Python 3.11) — port 8003 | External job offers (Indeed RSS, Adzuna) |
+| Gmail | FastAPI (Python 3.11) — port 8004 | Gmail integration, application sync |
+| RAG | FastAPI (Python 3.11) — port 8001 | Vector store + Ollama-powered letter generation |
+| MongoDB | mongo:7 — port 27017 | Shared database for all services |
+| Ollama | Native on host | Local LLM inference (Mistral / Llama3) |
+
+## Architecture Diagram
 
 ```mermaid
 graph TD
-    %% Define Nodes and Styles
-    subgraph Host_Machine ["Host Machine (Your PC)"]
-        style Host_Machine fill:#f9f9f9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    User((User Browser))
 
-        %% Local AI Engine (Native)
-        Ollama[("🦙 Ollama (Mistral/Llama3)
-        Running Natively")]
-        style Ollama fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    subgraph Docker["Docker Compose Network"]
+        Gateway["nginx:80\nGateway"]
+
+        subgraph Services["Microservices"]
+            Auth["Auth :8000\n/auth /profile"]
+            Pipeline["Pipeline :8002\n/scraping /filter /enrich /letter"]
+            Jobs["Jobs :8003\n/jobs"]
+            Gmail["Gmail :8004\n/gmail /candidatures"]
+            RAG["RAG :8001\n(internal)"]
+        end
+
+        MongoDB[("MongoDB :27017")]
+        ChromaDB[("ChromaDB\n(volume)")]
     end
 
-    subgraph Docker_Compose_Environment ["Docker Compose Network"]
-        style Docker_Compose_Environment fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    Ollama[("Ollama\nMistral/Llama3\nhost machine")]
 
-        %% Frontend Container
-        Nginx[("🌐 smartapply-ui
-        (Angular SPA)")]
-        style Nginx fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    User -->|HTTP :80| Gateway
+    Gateway --> Auth
+    Gateway --> Pipeline
+    Gateway --> Jobs
+    Gateway --> Gmail
 
-        %% Backend Container
-        FastAPI[("⚡ smartapply-api
-        (FastAPI Backend)")]
-        style FastAPI fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    Auth --> MongoDB
+    Pipeline --> MongoDB
+    Pipeline --> RAG
+    Jobs --> MongoDB
+    Jobs -.->|forward session| Pipeline
+    Gmail --> MongoDB
+    Gmail --> RAG
 
-        %% Database Container
-        MongoDB[("🍃 smartapply-db
-        (MongoDB)")]
-        style MongoDB fill:#fbe9e7,stroke:#d84315,stroke-width:2px
-    end
-
-    %% External APIs
-    GoogleAPI[("🔍 Google Search API
-    (Job Discovery)")]
-    style GoogleAPI fill:#fce4ec,stroke:#c2185b,stroke-width:1px
-    
-    HunterAPI[("📧 Hunter.io API
-    (Email Verification)")]
-    style HunterAPI fill:#fce4ec,stroke:#c2185b,stroke-width:1px
-
-    %% Define Connections & Data Flow
-    User((User)) -.->|Accesses| Nginx
-    Nginx ==>|REST API Calls| FastAPI
-    FastAPI ==>|Reads/Writes| MongoDB
-
-    %% Component Detail Connections
-    Nginx -.- DashboardViews
-    subgraph DashboardViews ["Dashboard Views"]
-        style DashboardViews fill:none,stroke:none
-        DV1[Dashboard 1: Scraped & Filtered Job Info]
-        DV2[Dashboard 2: Applied Jobs & Drafted Emails]
-    end
-
-    %% Backend Interactions
-    FastAPI ===>|Job Discovery (Phase 2)| GoogleAPI
-    FastAPI ===>|Email Data (Hunter)| HunterAPI
-    
-    %% AI Connection (Docker to Host)
-    FastAPI <-.->|AI Inference (host.docker.internal)| Ollama
-
-    %% Connection styling
-    linkStyle 0,1,2 stroke:#333,stroke-width:1px,stroke-dasharray: 3 3;
-    linkStyle 3,4,5,6,7 stroke:#01579b,stroke-width:2px;
+    RAG --> ChromaDB
+    RAG -->|"host.docker.internal:11434"| Ollama
 ```
 
-## Data Flow
-1. User uploads a CV or Job Description via the **Angular UI**.
-2. **FastAPI** processes the request and calls **Ollama** via the internal Docker bridge (`host.docker.internal`).
-3. The AI-generated content is stored in **MongoDB** and sent back to the user.
+## Request Flow
 
-## Why this Stack?
-- **FastAPI**: For high performance and automatic Swagger documentation.
-- **Docker**: To ensure environment consistency between development and deployment.
+```
+Browser → nginx:80 → [auth|pipeline|jobs|gmail]:port → MongoDB
+                                ↓
+                        pipeline / gmail → rag:8001 → ChromaDB + Ollama
+```
+
+## nginx Route Table
+
+| URL prefix | Upstream service |
+|---|---|
+| `/auth`, `/profile` | `auth:8000` |
+| `/scraping`, `/filter`, `/enrich`, `/pipeline`, `/letter` | `pipeline:8002` |
+| `/jobs` | `jobs:8003` |
+| `/gmail`, `/candidatures` | `gmail:8004` |
+
+> The RAG service (`rag:8001`) is **not exposed through nginx** — it is internal-only.
+
+## Pipeline Data Flow
+
+Jobs flow through stages in MongoDB `jobs` collection, keyed on `(user_id, domaine)`:
+
+```
+scraping → filtered → deep → enriched
+```
+
+Each stage has status `active` or `eliminated`. The pipeline uses **SSE streaming** — every router returns a `StreamingResponse(media_type="text/event-stream")` that yields JSON events, terminating with `{"type": "done"}`.
+
+The Angular `PipelineService` chains stages using RxJS `concat`, waiting for each SSE stream to complete before starting the next.
+
+## Auth Flow
+
+```
+GET /auth/login
+  → redirect to Google OAuth2 consent
+
+GET /auth/callback?code=...
+  → exchange code for tokens
+  → upsert user in MongoDB
+  → create JWT (subject = google_id)
+  → set HttpOnly session cookie (7 days)
+  → redirect to frontend
+```
+
+All protected routes use `Depends(get_current_user)` — decodes JWT, loads User from MongoDB.
+
+## RAG Architecture
+
+The RAG service (ChromaDB + Ollama) is called by both `pipeline` and `gmail`:
+
+```
+1. retrieve/context  → fetch relevant chunks from ChromaDB
+                        (CV chunks + past letters + reference letters)
+2. build prompt      → context + company data + user profile
+3. Ollama 2-pass:
+   - analysis prompt  (temp 0.3)
+   - letter generation (temp 0.7)
+4. index/letter      → store generated letter back in ChromaDB
+```
+
+## Why Microservices?
+
+Each service has a single responsibility and independent memory budget:
+- `auth` (256M) — lightweight, stateless JWT validation
+- `pipeline` (512M) — heavy scraping + AI filtering
+- `jobs` (256M) — external API aggregation
+- `gmail` (256M) — Gmail sync + Ollama parsing
+- `rag` (512M) — ChromaDB + Ollama generation
+- `mongodb` (512M) — database
+
+Total: ~2.3 GB max. Each service scales independently.
 
 [← Back to Main README](../README.md)
