@@ -2,7 +2,7 @@ import os
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 
-from app.services.gmail.gmail import get_auth_url, exchange_code_for_user
+from app.services.auth.google_oauth import get_auth_url, exchange_code_for_user
 from app.services.auth.jwt_handler import create_jwt
 from app.services.auth.dependency import get_current_user
 from app.repositories.user_repository import UserRepository
