@@ -15,7 +15,7 @@ export class CompanyDetailComponent implements OnChanges {
   @Output() closed         = new EventEmitter<void>();
   @Output() deleted        = new EventEmitter<string>();
 
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
 
   visible           = false;
 

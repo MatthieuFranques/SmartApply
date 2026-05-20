@@ -36,7 +36,7 @@ export interface CVAnalysisResult {
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
 
   constructor(private readonly http: HttpClient) {}
 

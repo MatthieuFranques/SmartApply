@@ -27,7 +27,7 @@ export interface PipelineConfig {
 
 @Injectable({ providedIn: 'root' })
 export class PipelineService {
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
 
   runFullPipeline(params: PipelineParams): Observable<any> {
     return concat(

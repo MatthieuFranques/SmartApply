@@ -49,7 +49,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   authenticated : boolean = false;
   authChecking  : boolean = true;
   currentUser: { email: string; name: string } | null = null;
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
   private readonly sub?: Subscription;
 
   constructor(private readonly http: HttpClient) {}
