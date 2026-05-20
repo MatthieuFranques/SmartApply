@@ -1,8 +1,28 @@
-﻿__pycache__/
+# Sensitive
+.env
+.env.*
+*.env
+token.json
+cv.pdf
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dev/test artifacts
+__pycache__/
 *.pyc
 *.pyo
-.env
-token.json
-*.pdf
+*.pyd
 .pytest_cache/
+tests/
 .coverage
+htmlcov/
+
+# Tooling
+.git/
+.gitignore
+.dockerignore
+*.md
+.vscode/
+.idea/

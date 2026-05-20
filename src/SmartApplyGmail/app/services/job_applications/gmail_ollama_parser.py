@@ -74,8 +74,13 @@ def _ask_json(prompt: str) -> dict:
         options={"temperature": cfg.temperature, "num_predict": cfg.max_tokens},
     )
     raw = resp["message"]["content"].strip()
-    raw = re.sub(r"^```(?:json)?\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
+    if raw.startswith("```"):
+        raw = raw[3:]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.lstrip("\n\r\t ")
+    if raw.endswith("```"):
+        raw = raw[:-3].rstrip("\n\r\t ")
     return json.loads(raw)
 
 
