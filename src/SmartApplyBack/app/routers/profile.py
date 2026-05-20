@@ -1,14 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.services.auth.dependency import get_current_user
 from app.models.user import User
 from app.repositories.profile_repository import UserProfileRepository, DEFAULT_PROFILE
-from app.services.generate_letter.cv_parser import extract_pdf_text, parse_cv_profile, suggest_pipeline_config
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
-
-OLLAMA_MODEL = "mistral"
 
 
 class UserProfileBody(BaseModel):
@@ -46,38 +43,6 @@ def update_profile(
     repo = UserProfileRepository()
     repo.upsert(current_user.google_id, body.model_dump())
     return {"ok": True}
-
-
-@router.post("/cv")
-async def upload_cv(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
-) -> dict:
-    if file.content_type not in ("application/pdf", "application/octet-stream"):
-        raise HTTPException(status_code=400, detail="PDF only")
-
-    pdf_bytes = await file.read()
-    if len(pdf_bytes) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large (max 5 MB)")
-
-    cv_text = extract_pdf_text(pdf_bytes)
-    if not cv_text.strip():
-        raise HTTPException(status_code=422, detail="Could not extract text from PDF")
-
-    try:
-        profile_data = parse_cv_profile(cv_text, OLLAMA_MODEL)
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-    suggestion = suggest_pipeline_config(profile_data, OLLAMA_MODEL)
-
-    repo = UserProfileRepository()
-    existing = repo.get(current_user.google_id)
-    merged = {**existing, **{k: v for k, v in profile_data.items() if v}, "cv_text": cv_text}
-    repo.upsert(current_user.google_id, merged)
-
-    clean_profile = {k: merged[k] for k in DEFAULT_PROFILE if k != "cv_text"}
-    return {"profile": clean_profile, "pipeline_suggestion": suggestion}
 
 
 @router.get("/defaults")
