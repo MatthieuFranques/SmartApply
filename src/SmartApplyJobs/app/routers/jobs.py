@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.services.auth.dependency import get_current_user
 from app.models.user import User
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
 @router.get("/offers")
 def get_offers(
+    request:  Request,
     source:   str = Query(default="all", pattern="^(all|pipeline|indeed)$"),
     keywords: str = Query(default=""),
     location: str = Query(default=""),
@@ -32,7 +33,8 @@ def get_offers(
     results: list[dict] = []
 
     if source in ("all", "pipeline"):
-        results += get_offers_from_pipeline(current_user.google_id)
+        session = request.cookies.get("session", "")
+        results += get_offers_from_pipeline(current_user.google_id, session)
 
     if source in ("all", "indeed"):
         kw  = keywords.strip()

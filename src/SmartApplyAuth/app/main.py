@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.indexes import create_indexes
 from app.routers import auth, profile
+from app.db.mongo import get_client
 
 
 @asynccontextmanager
@@ -23,3 +24,9 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(profile.router)
+
+
+@app.get("/health")
+def health():
+    get_client().admin.command("ping")
+    return {"status": "ok", "service": "auth"}
