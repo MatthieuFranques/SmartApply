@@ -16,7 +16,7 @@ async def get_current_user(session: Optional[str] = Cookie(None)) -> AuthUser:
     if not session:
         raise HTTPException(status_code=401, detail="Non authentifié → GET /gmail/auth")
 
-    gmail_url = os.getenv("GMAIL_URL", "http://gmail:8004")
+    gmail_url = os.getenv("GMAIL_URL")
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(

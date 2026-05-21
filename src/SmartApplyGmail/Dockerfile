@@ -11,9 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
-    
-# NOSONAR - .dockerignore excludes all sensitive files   
-COPY . . 
+
+COPY app/ ./app/
 
 RUN chown -R appuser:appgroup /app
 

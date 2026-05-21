@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.services.enrich.enrich_main import stream_enrich
 from app.repositories.job_repository import JobRepository
-from app.services.auth.dependency import get_current_user
-from app.models.user import User
+from app.services.auth.dependency import get_current_user, AuthUser
 from app.utils.sse import sse_event, SSE_HEADERS
 
 router = APIRouter(prefix="/enrich", tags=["Enrich"])
@@ -13,7 +12,7 @@ router = APIRouter(prefix="/enrich", tags=["Enrich"])
 @router.get("/stream")
 def enrich_stream(
     limit: int = Query(default=None),
-    current_user: User = Depends(get_current_user),
+    current_user: AuthUser = Depends(get_current_user),
 ):
     repo = JobRepository()
     jobs = [j.model_dump() for j in repo.find_by_stage(current_user.google_id, "deep")]
@@ -29,6 +28,18 @@ def enrich_stream(
 
 
 @router.get("/results")
-def get_enriched_results(current_user: User = Depends(get_current_user)):
+def get_enriched_results(current_user: AuthUser = Depends(get_current_user)):
     repo = JobRepository()
     return [job.model_dump() for job in repo.find_by_stage(current_user.google_id, "enriched")]
+
+
+@router.get("/company")
+def get_company(
+    domaine: str = Query(...),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    repo = JobRepository()
+    job = repo.find_one(current_user.google_id, domaine)
+    if not job:
+        raise HTTPException(status_code=404, detail="Entreprise introuvable")
+    return job.model_dump(mode="json")

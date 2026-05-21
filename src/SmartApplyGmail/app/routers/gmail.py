@@ -1,15 +1,16 @@
 import os
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, Cookie, HTTPException, Query, Depends
+from typing import Optional
 
 from app.services.gmail.gmail import fetch_emails_by_label, create_gmail_draft
 from app.services.auth.dependency import get_current_user
-from app.repositories.job_repository import JobRepository
 from app.models.gmail import GmailMessage, DraftRequest, DraftResponse
 from app.models.user import User
 
-_RAG_URL     = os.getenv("RAG_URL")
-_RAG_TIMEOUT = float(os.getenv("RAG_TIMEOUT", "120"))
+_RAG_URL      = os.getenv("RAG_URL")
+_RAG_TIMEOUT  = float(os.getenv("RAG_TIMEOUT", "120"))
+_PIPELINE_URL = os.getenv("PIPELINE_URL")
 
 
 def _determine_mode(company: dict) -> str:
@@ -26,6 +27,19 @@ def _call_rag(endpoint: str, payload: dict) -> dict | str:
         json=payload,
         timeout=_RAG_TIMEOUT,
     )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _get_company(domaine: str, session: str) -> dict:
+    resp = httpx.get(
+        f"{_PIPELINE_URL}/enrich/company",
+        params={"domaine": domaine},
+        cookies={"session": session},
+        timeout=10.0,
+    )
+    if resp.status_code == 404:
+        return None
     resp.raise_for_status()
     return resp.json()
 
@@ -47,13 +61,11 @@ def get_messages(
 def create_draft(
     body: DraftRequest,
     current_user: User = Depends(get_current_user),
+    session: Optional[str] = Cookie(None),
 ):
-    repo = JobRepository()
-    job  = repo.find_one(current_user.google_id, body.domaine)
-    if not job:
+    company = _get_company(body.domaine, session or "")
+    if not company:
         raise HTTPException(status_code=404, detail="Entreprise introuvable")
-
-    company = job.model_dump(mode="json")
     mode = _determine_mode(company)
 
     contact_form = company.get("contact_form") or {}
