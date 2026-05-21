@@ -1,0 +1,17 @@
+beautifulsoup4
+python-dotenv
+pymongo
+motor
+pydantic
+pydantic-settings
+fastapi
+uvicorn
+aiohttp
+aiodns
+charset-normalizer
+ollama
+httpx
+pypdf
+python-multipart
+requests
+python-jose[cryptography]==3.3.0

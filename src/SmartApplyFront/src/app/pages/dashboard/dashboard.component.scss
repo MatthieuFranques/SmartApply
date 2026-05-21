@@ -73,6 +73,23 @@
   }
 }
 
+.nav-pipeline {
+  color: var(--accent);
+  border: 1px solid rgba(0,229,160,0.25);
+  background: rgba(0,229,160,0.05);
+  margin-left: 4px;
+
+  &:hover { background: rgba(0,229,160,0.1); border-color: rgba(0,229,160,0.4); }
+}
+
+.nav-profile {
+  color: var(--accent2);
+  border: 1px solid rgba(0,102,255,0.25);
+  background: rgba(0,102,255,0.05);
+
+  &:hover { background: rgba(0,102,255,0.1); border-color: rgba(0,102,255,0.4); }
+}
+
 .helper-btn {
   background: rgba(255,255,255,.1);
   border: 1px solid rgba(255,255,255,.3);

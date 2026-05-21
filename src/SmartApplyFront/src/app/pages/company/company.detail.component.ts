@@ -15,7 +15,7 @@ export class CompanyDetailComponent implements OnChanges {
   @Output() closed         = new EventEmitter<void>();
   @Output() deleted        = new EventEmitter<string>();
 
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
 
   visible           = false;
 
@@ -30,16 +30,23 @@ export class CompanyDetailComponent implements OnChanges {
   letterError       = '';
   copied            = false;
 
+  // Draft
+  draftLoading = false;
+  draftUrl     = '';
+  draftError   = '';
+
   constructor(private readonly http: HttpClient) {}
 
   ngOnChanges() {
     this.visible = !!this.company;
-    // Reset state when company changes
     this.showDeleteConfirm = false;
     this.showLetterEditor  = false;
     this.letterContent     = '';
     this.letterError       = '';
     this.copied            = false;
+    this.draftLoading      = false;
+    this.draftUrl          = '';
+    this.draftError        = '';
   }
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -86,10 +93,24 @@ export class CompanyDetailComponent implements OnChanges {
     this.letterContent    = '';
     const name = encodeURIComponent(this.company.nom);
 
-    this.http.get<{ letter: string }>(`${this.api}/letter/${name}`).subscribe({
+    this.http.get<{ letter: string | null; contact_form?: Record<string, unknown>; mode: string }>(
+      `${this.api}/letter/${name}`,
+      { withCredentials: true },
+    ).subscribe({
       next: (res) => {
         this.letterLoading = false;
-        this.letterContent = res.letter ?? JSON.stringify(res, null, 2);
+        if (res.letter) {
+          this.letterContent = res.letter;
+        } else if (res.contact_form) {
+          const cf = res.contact_form as Record<string, unknown>;
+          if (cf['raw_response']) {
+            this.letterContent = cf['raw_response'] as string;
+          } else {
+            this.letterContent = Object.entries(cf)
+              .map(([k, v]) => `${k} : ${v}`)
+              .join('\n\n');
+          }
+        }
       },
       error: (err) => {
         this.letterLoading = false;
@@ -103,6 +124,31 @@ export class CompanyDetailComponent implements OnChanges {
     navigator.clipboard.writeText(this.letterContent).then(() => {
       this.copied = true;
       setTimeout(() => this.copied = false, 2000);
+    });
+  }
+
+  // ─── Gmail Draft ──────────────────────────────────────────
+
+  createDraft() {
+    this.draftLoading = true;
+    this.draftUrl     = '';
+    this.draftError   = '';
+
+    this.http.post<{ draft_id: string; draft_url: string; to: string; subject: string }>(
+      `${this.api}/gmail/draft`,
+      { domaine: this.company.domaine, model: 'mistral' },
+      { withCredentials: true },
+    ).subscribe({
+      next: (res) => {
+        this.draftLoading = false;
+        this.draftUrl     = res.draft_url;
+      },
+      error: (err) => {
+        this.draftLoading = false;
+        this.draftError   = err.status === 403
+          ? 'Re-connecte-toi pour activer la création de brouillons Gmail.'
+          : 'Erreur lors de la création du brouillon.';
+      },
     });
   }
 

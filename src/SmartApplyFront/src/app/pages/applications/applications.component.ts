@@ -47,7 +47,7 @@ export class ApplicationsComponent implements OnInit {
   statuts    = ['Tous', 'En attente', 'Entretien', 'Offre reçue', 'Décision requise', 'Refusé'];
   activeStatut = 'Tous';
 
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
 
   constructor(private readonly http: HttpClient) {}
 
