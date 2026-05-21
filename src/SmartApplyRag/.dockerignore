@@ -1,0 +1,12 @@
+.env
+data/
+.gitignore
+.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+README.md
