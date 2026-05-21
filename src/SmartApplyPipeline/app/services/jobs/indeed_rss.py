@@ -31,7 +31,7 @@ def _map_job(job: dict) -> dict | None:
     location = f"{city}, {country}".strip(", ")
 
     return {
-        "id":              hashlib.md5(url.encode()).hexdigest(),
+        "id":              hashlib.sha256(url.encode()).hexdigest(),
         "title":           job.get("job_title", ""),
         "company":         job.get("employer_name", ""),
         "location":        location,

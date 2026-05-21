@@ -40,7 +40,7 @@ def _map_job(job: dict, location: str) -> dict | None:
     created     = (job.get("created") or "")[:10]
 
     return {
-        "id":              hashlib.md5(url.encode()).hexdigest(),
+        "id":              hashlib.sha256(url.encode()).hexdigest(),
         "title":           job.get("title", ""),
         "company":         (job.get("company") or {}).get("display_name", ""),
         "location":        display_loc,

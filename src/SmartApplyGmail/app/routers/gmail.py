@@ -8,7 +8,7 @@ from app.repositories.job_repository import JobRepository
 from app.models.gmail import GmailMessage, DraftRequest, DraftResponse
 from app.models.user import User
 
-_RAG_URL     = os.getenv("RAG_URL",     "http://rag:8001")
+_RAG_URL     = os.getenv("RAG_URL")
 _RAG_TIMEOUT = float(os.getenv("RAG_TIMEOUT", "120"))
 
 

@@ -10,7 +10,7 @@ _COLLECTION      = "job_search_cache"
 
 def _cache_key(keywords: str, location: str, days: int) -> str:
     raw = f"{keywords.lower().strip()}|{location.lower().strip()}|{days}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def get_cached(keywords: str, location: str, days: int) -> list[dict] | None:

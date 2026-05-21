@@ -15,7 +15,7 @@ def get_offers_from_pipeline(user_id: str) -> list[dict]:
             if not url or not offer.get("title"):
                 continue
             results.append({
-                "id":              hashlib.md5(url.encode()).hexdigest(),
+                "id":              hashlib.sha256(url.encode()).hexdigest(),
                 "title":           offer.get("title", ""),
                 "company":         company.get("nom", ""),
                 "location":        company.get("ville", ""),
