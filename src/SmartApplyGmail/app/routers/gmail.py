@@ -1,16 +1,33 @@
 import os
+import httpx
 from fastapi import APIRouter, HTTPException, Query, Depends
 
 from app.services.gmail.gmail import fetch_emails_by_label, create_gmail_draft
-from app.services.generate_letter.generate_letter_generator import (
-    determine_mode,
-    generate_contact_form,
-    generate_letter,
-)
 from app.services.auth.dependency import get_current_user
 from app.repositories.job_repository import JobRepository
 from app.models.gmail import GmailMessage, DraftRequest, DraftResponse
 from app.models.user import User
+
+_RAG_URL     = os.getenv("RAG_URL",     "http://rag:8001")
+_RAG_TIMEOUT = float(os.getenv("RAG_TIMEOUT", "120"))
+
+
+def _determine_mode(company: dict) -> str:
+    if company.get("job_offers"):
+        return "letter"
+    if company.get("contact_form") and not company.get("job_offers"):
+        return "contact"
+    return "letter"
+
+
+def _call_rag(endpoint: str, payload: dict) -> dict | str:
+    resp = httpx.post(
+        f"{_RAG_URL}{endpoint}",
+        json=payload,
+        timeout=_RAG_TIMEOUT,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 router = APIRouter(prefix="/gmail", tags=["Gmail"])
 
@@ -37,17 +54,23 @@ def create_draft(
         raise HTTPException(status_code=404, detail="Entreprise introuvable")
 
     company = job.model_dump(mode="json")
-    mode = determine_mode(company)
+    mode = _determine_mode(company)
 
     contact_form = company.get("contact_form") or {}
     to           = contact_form.get("email_found", "")
 
     try:
         if mode == "contact":
-            contact_data = generate_contact_form(company, body.model, user_id=current_user.google_id)
-            letter_text  = contact_data.get("message") or contact_data.get("raw_response") or str(contact_data)
+            contact_data = _call_rag("/generate/contact", {
+                "company": company, "profile": {}, "model": body.model, "user_id": current_user.google_id,
+            })
+            letter_text = contact_data.get("message") or contact_data.get("raw_response") or str(contact_data)
         else:
-            letter_text = generate_letter(company, body.model, user_id=current_user.google_id)
+            result_data = _call_rag("/generate/letter", {
+                "company": company, "profile": {}, "model": body.model,
+                "reference_letter": "", "user_id": current_user.google_id,
+            })
+            letter_text = result_data["letter"]
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"RAG indisponible : {e}")
 
