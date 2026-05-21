@@ -1,11 +1,3 @@
-"""
-search_cache.py
----------------
-MongoDB-backed cache for external job search results (JSearch + Adzuna).
-Cache is global (job listings are public data — no per-user isolation needed).
-TTL is enforced by a MongoDB TTL index on `expires_at` (auto-delete).
-"""
-
 import hashlib
 import os
 from datetime import datetime, timezone, timedelta
@@ -22,7 +14,6 @@ def _cache_key(keywords: str, location: str, days: int) -> str:
 
 
 def get_cached(keywords: str, location: str, days: int) -> list[dict] | None:
-    """Return cached results if still valid, else None."""
     db  = get_db()
     key = _cache_key(keywords, location, days)
     doc = db[_COLLECTION].find_one({"_id": key})
@@ -30,7 +21,6 @@ def get_cached(keywords: str, location: str, days: int) -> list[dict] | None:
     if doc is None:
         return None
 
-    # Paranoia check — TTL index handles deletion but may lag a few seconds
     if datetime.now(timezone.utc) > doc["expires_at"].replace(tzinfo=timezone.utc):
         return None
 
@@ -38,7 +28,6 @@ def get_cached(keywords: str, location: str, days: int) -> list[dict] | None:
 
 
 def set_cached(keywords: str, location: str, days: int, results: list[dict]) -> None:
-    """Store results in cache with TTL."""
     db  = get_db()
     key = _cache_key(keywords, location, days)
     now = datetime.now(timezone.utc)

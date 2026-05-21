@@ -1,12 +1,3 @@
-"""
-job_offer_repository.py
------------------------
-Persistent storage for external job offers (JSearch + Adzuna).
-One document per offer per user. TTL = 90 days from date_posted (or stored_at).
-MongoDB TTL index on `expires_at` handles auto-cleanup.
-Each offer stores the search context (keywords + location) for grouping.
-"""
-
 from datetime import datetime, timezone, timedelta
 
 from app.db.mongo import get_db
@@ -26,7 +17,6 @@ def _expires_at(date_posted: str, fallback: datetime) -> datetime:
 
 
 def upsert_offers(user_id: str, offers: list[dict], keywords: str = "", location: str = "") -> None:
-    """Upsert a batch of offers, tagging each with its search context."""
     db  = get_db()
     now = datetime.now(timezone.utc)
 
@@ -50,7 +40,6 @@ _EXCLUDE = {"_id": 0, "user_id": 0, "offer_id": 0, "expires_at": 0, "stored_at":
 
 
 def find_offers(user_id: str, keywords: str = "", location: str = "") -> list[dict]:
-    """Return stored offers for a user, optionally filtered by search context."""
     db    = get_db()
     query: dict = {"user_id": user_id}
     if keywords:
@@ -62,11 +51,6 @@ def find_offers(user_id: str, keywords: str = "", location: str = "") -> list[di
 
 
 def find_offers_grouped(user_id: str) -> list[dict]:
-    """
-    Return stored offers grouped by search query.
-    Each group: { keywords, location, count, offers[] }
-    Sorted by most recent stored_at desc.
-    """
     db   = get_db()
     docs = list(db[_COLLECTION].find(
         {"user_id": user_id},
@@ -80,11 +64,7 @@ def find_offers_grouped(user_id: str) -> list[dict]:
         key = f"{kw}||{loc}"
 
         if key not in groups:
-            groups[key] = {
-                "keywords": kw,
-                "location": loc,
-                "offers":   [],
-            }
+            groups[key] = {"keywords": kw, "location": loc, "offers": []}
 
         _internal = {"search_keywords", "search_location", "stored_at"}
         offer = {k: v for k, v in doc.items() if k not in _internal}

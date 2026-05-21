@@ -1,11 +1,3 @@
-"""
-indeed_rss.py → JSearch (RapidAPI)
------------------------------------
-Drop-in replacement for the former Indeed RSS scraper.
-Requires JSEARCH_API_KEY env var (RapidAPI key).
-Free tier: 200 requests/month.
-"""
-
 import hashlib
 import os
 
@@ -23,9 +15,9 @@ _HEADERS  = {
 
 
 def _days_to_param(days: int) -> str:
-    if days <= 1:  return "today"
-    if days <= 3:  return "3days"
-    if days <= 7:  return "week"
+    if days <= 1: return "today"
+    if days <= 3: return "3days"
+    if days <= 7: return "week"
     return "month"
 
 
@@ -34,8 +26,8 @@ def _map_job(job: dict) -> dict | None:
     if not url:
         return None
 
-    city    = job.get("job_city", "") or ""
-    country = job.get("job_country", "") or ""
+    city     = job.get("job_city", "") or ""
+    country  = job.get("job_country", "") or ""
     location = f"{city}, {country}".strip(", ")
 
     return {
@@ -59,15 +51,6 @@ def search_indeed(
     days:        int = 30,
     max_results: int = 50,
 ) -> list[dict]:
-    """
-    Search jobs via JSearch (RapidAPI wrapper around Indeed + others).
-
-    Args:
-        keywords:    search query  (e.g. "développeur .NET fullstack")
-        location:    city or country
-        days:        only posts from the last N days
-        max_results: cap results
-    """
     if not _API_KEY:
         print("[JSearch] JSEARCH_API_KEY missing — skipping Indeed search")
         return []

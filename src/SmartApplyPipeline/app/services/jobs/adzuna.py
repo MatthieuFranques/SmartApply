@@ -1,12 +1,3 @@
-"""
-adzuna.py
-----------
-Job search via Adzuna official API.
-No scraping — direct API access.
-Free tier: 250 requests/day.
-Register at https://developer.adzuna.com
-"""
-
 import hashlib
 import os
 
@@ -15,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_APP_ID  = os.getenv("ADZUNA_APP_ID", "")
-_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
+_APP_ID   = os.getenv("ADZUNA_APP_ID", "")
+_APP_KEY  = os.getenv("ADZUNA_APP_KEY", "")
 _BASE_URL = "https://api.adzuna.com/v1/api/jobs"
 
 _COUNTRY_MAP = {
@@ -44,13 +35,9 @@ def _map_job(job: dict, location: str) -> dict | None:
     if not url:
         return None
 
-    loc_parts = [
-        job.get("location", {}).get("display_name", ""),
-        location,
-    ]
+    loc_parts  = [job.get("location", {}).get("display_name", ""), location]
     display_loc = loc_parts[0] or loc_parts[1]
-
-    created = (job.get("created") or "")[:10]
+    created     = (job.get("created") or "")[:10]
 
     return {
         "id":              hashlib.md5(url.encode()).hexdigest(),
@@ -73,15 +60,6 @@ def search_adzuna(
     days:        int = 30,
     max_results: int = 50,
 ) -> list[dict]:
-    """
-    Search jobs via Adzuna official API.
-
-    Args:
-        keywords:    search query (e.g. "développeur .NET fullstack")
-        location:    city or country
-        days:        only posts from the last N days
-        max_results: cap results
-    """
     if not _APP_ID or not _APP_KEY:
         print("[Adzuna] ADZUNA_APP_ID or ADZUNA_APP_KEY missing — skipping")
         return []
@@ -91,14 +69,14 @@ def search_adzuna(
     url      = f"{_BASE_URL}/{country}/search/1"
 
     params = {
-        "app_id":       _APP_ID,
-        "app_key":      _APP_KEY,
-        "what":         keywords,
-        "where":        location,
-        "max_days_old": str(days),
+        "app_id":           _APP_ID,
+        "app_key":          _APP_KEY,
+        "what":             keywords,
+        "where":            location,
+        "max_days_old":     str(days),
         "results_per_page": str(per_page),
-        "content-type": "application/json",
-        "sort_by":      "date",
+        "content-type":     "application/json",
+        "sort_by":          "date",
     }
 
     try:

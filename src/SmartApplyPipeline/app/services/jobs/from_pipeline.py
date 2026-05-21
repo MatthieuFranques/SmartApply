@@ -1,36 +1,12 @@
-"""
-from_pipeline.py
-----------------
-Fetches enriched job offers from the pipeline service API.
-Calls GET /enrich/results instead of reading MongoDB directly
-to respect service boundaries.
-"""
-
 import hashlib
-import os
 
-import httpx
-
-PIPELINE_URL     = os.getenv("PIPELINE_URL", "http://pipeline:8002")
-PIPELINE_TIMEOUT = float(os.getenv("PIPELINE_TIMEOUT", "10"))
+from app.repositories.job_repository import JobRepository
 
 
-def get_offers_from_pipeline(user_id: str, access_token: str = "") -> list[dict]:
-    """
-    Returns job offers from enriched companies via the pipeline service API.
-    Falls back to empty list if pipeline is unreachable.
-    """
-    try:
-        resp = httpx.get(
-            f"{PIPELINE_URL}/enrich/results",
-            headers={"Cookie": f"session={access_token}"} if access_token else {},
-            timeout=PIPELINE_TIMEOUT,
-        )
-        resp.raise_for_status()
-        companies = resp.json()
-    except Exception as e:
-        print(f"[from_pipeline] pipeline unreachable: {e}", flush=True)
-        return []
+def get_offers_from_pipeline(user_id: str) -> list[dict]:
+    """Return job offers extracted from enriched companies in the local DB."""
+    repo      = JobRepository()
+    companies = [job.model_dump() for job in repo.find_by_stage(user_id, "enriched")]
 
     results = []
     for company in companies:

@@ -1,9 +1,0 @@
-python-dotenv
-pymongo
-pydantic
-pydantic-settings
-fastapi
-uvicorn
-httpx
-requests
-python-jose[cryptography]==3.3.0

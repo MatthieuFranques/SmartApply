@@ -8,3 +8,6 @@ def create_indexes() -> None:
     db["jobs"].create_index([("user_id", 1), ("stage", 1)])
     db["cover_letters"].create_index("job_id")
     db["cover_letters"].create_index("user_id")
+    db["job_search_cache"].create_index("expires_at", expireAfterSeconds=0)
+    db["job_offers"].create_index([("user_id", 1), ("offer_id", 1)], unique=True)
+    db["job_offers"].create_index("expires_at", expireAfterSeconds=0)

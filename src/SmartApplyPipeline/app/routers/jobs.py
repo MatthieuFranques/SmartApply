@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 
 from app.services.auth.dependency import get_current_user
 from app.models.user import User
@@ -15,7 +15,6 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
 @router.get("/offers")
 def get_offers(
-    request:  Request,
     source:   str = Query(default="all", pattern="^(all|pipeline|indeed)$"),
     keywords: str = Query(default=""),
     location: str = Query(default=""),
@@ -23,18 +22,10 @@ def get_offers(
     limit:    int = Query(default=100, ge=1, le=300),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Sources:
-    - pipeline: DB only (enriched companies from pipeline)
-    - indeed + keywords: external APIs (cache 12h → JSearch + Adzuna) → persisted 90 days
-    - indeed, no keywords: stored offers from DB
-    - all: both combined
-    """
     results: list[dict] = []
 
     if source in ("all", "pipeline"):
-        session = request.cookies.get("session", "")
-        results += get_offers_from_pipeline(current_user.google_id, session)
+        results += get_offers_from_pipeline(current_user.google_id)
 
     if source in ("all", "indeed"):
         kw  = keywords.strip()
@@ -69,11 +60,6 @@ def get_offers(
 
 @router.get("/stored/grouped")
 def get_stored_grouped(current_user: User = Depends(get_current_user)):
-    """
-    Return all stored external offers grouped by search query.
-    Used to populate the 'previous searches' section on page load.
-    Each group: { keywords, location, count, offers[] }
-    """
     return find_offers_grouped(current_user.google_id)
 
 
