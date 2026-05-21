@@ -8,12 +8,10 @@ import { CompanyDetailComponent } from '../company/company.detail.component';
 import { ApplicationsComponent } from '../applications/applications.component';
 import { OffersComponent } from '../offers/offers.component';
 import { PipelineComponent } from '../../components/pipeline/pipeline.component';
-import { ProfileComponent } from '../../components/profile/profile.component';
 import { AuthScreenComponent } from '../../components/authScreen/auth-screen.component';
 import { StatsBarComponent, StatItem } from '../../components/statsBar/stats-bar.component';
 import { CityFiltersComponent, CityCount } from '../../components/cityFilters/city-filters.component';
 import { CompanyTableComponent } from '../../components/companyTable/company-table.component';
-import { PipelineSuggestion } from '../../services/profile.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,7 +22,6 @@ import { PipelineSuggestion } from '../../services/profile.service';
     ApplicationsComponent,
     OffersComponent,
     PipelineComponent,
-    ProfileComponent,
     AuthScreenComponent,
     StatsBarComponent,
     CityFiltersComponent,
@@ -37,8 +34,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   activeTab          : 'companies' | 'applications' | 'offers' = 'companies';
   showPipeline       : boolean = false;
-  showProfile        : boolean = false;
-  pipelineSuggestion : PipelineSuggestion | null = null;
 
   companies       : Company[]  = [];
   loading         : boolean    = false;
@@ -124,11 +119,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   onPipelineDone(): void { this.loadResults(); }
-
-  onLaunchPipeline(suggestion: PipelineSuggestion): void {
-    this.pipelineSuggestion = suggestion;
-    this.showPipeline = true;
-  }
 
   // ── Load ──────────────────────────────────────────────────
 
