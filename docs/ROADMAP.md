@@ -1,26 +1,50 @@
-# 🗺️ Product Roadmap - SmartApply
+# Product Roadmap — SmartApply
 
-This roadmap outlines the planned features and future directions for the SmartApply project.
+## Phase 1 — Foundation (Completed)
 
-##  Phase 1: Foundation (Completed)
-- [x] Basic CRUD operations for job applications.
-- [x] Local AI integration with Ollama (Mistral/Llama3).
-- [x] Dockerization of the full stack (Angular, FastAPI, MongoDB).
-- [x] Documentation and professional repo setup.
+- [x] Basic CRUD for job applications
+- [x] Local AI integration with Ollama (Mistral)
+- [x] Dockerization of the full stack
+- [x] Google OAuth2 + JWT session authentication
+- [x] Gmail integration — read emails, sync application status
+- [x] SSE streaming pipeline (scraping → filter → enrich)
+- [x] Cover letter generation (RAG + Ollama)
+- [x] Hunter.io domain discovery
+- [x] Documentation and professional repo setup
 
-##  Phase 2: Enhanced Functionality (In Progress)
-- **Drafting System**: Implementation of an email drafting service to prepare "ready-to-send" application emails.
-- **Application Deep Dive**: Refactoring and enhancing the logic for older job application entries that require data cleanup.
-- **Job Discovery Service**: Integration of a Google Search API-based service to find new job listings while respecting scraping limitations.
-- **New UI Views**: Dedicated dashboard view to visualize and filter currently available job opportunities.
+## Phase 2 — Microservices Migration (Completed)
 
-##  Phase 3: Reliability & DevOps (Future)
-- **Automated Testing**: Implementation of Unit and Integration tests for both Frontend (Jasmine/Karma) and Backend (Pytest).
-- **CI/CD Pipeline**: Setup of GitHub Actions for automated code linting and maintenance.
-- **Code Quality**: Integration of **SonarQube** (optional) to monitor technical debt and security vulnerabilities.
-- **Advanced Analytics**: Visual charts to track application response rates and interview progress.
+- [x] Split monolith into 5 independent FastAPI services
+  - `auth` (port 8000) — OAuth2 + JWT + user profile
+  - `pipeline` (port 8002) — scraping + filter + enrich + letter
+  - `jobs` (port 8003) — external job offers aggregation
+  - `gmail` (port 8004) — Gmail sync + application tracker
+  - `rag` (port 8001) — ChromaDB vector store + Ollama generation
+- [x] nginx gateway (port 80) routing all services
+- [x] Independent memory budgets per service
+- [x] RAG service with ChromaDB for CV + letter retrieval
+- [x] External job offers: Indeed RSS + Adzuna aggregation with 12h cache
+- [x] User profile management (separate from auth)
+- [x] Gmail draft creation from generated letters
+
+## Phase 3 — Reliability & DevOps (In Progress)
+
+- [ ] Automated tests for all microservices (Pytest, per-service)
+- [ ] GitHub Actions CI — lint + test on PR
+- [ ] Per-service `.env.example` templates fully documented
+- [ ] Flutter mobile app (BLoC pattern, mirrors Angular features)
+- [ ] Advanced analytics — response rate charts, interview funnel
+
+## Phase 4 — Future
+
+- [ ] LinkedIn job scraping integration
+- [ ] Multi-user support with tenant isolation
+- [ ] Email open tracking
+- [ ] Application follow-up reminders
+- [ ] SonarQube integration for code quality monitoring
 
 ---
-*This roadmap is subject to change as the project evolves.*
+
+*Roadmap updated 2026-05-20 — reflects microservices architecture.*
 
 [← Back to Main README](../README.md)

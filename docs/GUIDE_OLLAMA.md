@@ -1,70 +1,124 @@
-# 🦙 Complete Guide — Ollama + Cover Letter Generation
+# Guide — Ollama + SmartApply
 
-## What is Ollama?
+Ollama runs **natively on your host machine**. Docker containers connect to it via `host.docker.internal:11434`.
 
-Ollama is like having **ChatGPT on your own PC**, with no subscription and no internet connection required. You download an AI model once, and it runs entirely locally on your machine.
-
-With 8GB of RAM → the **Mistral** model is the perfect fit for your setup.
+SmartApply uses Ollama for two things:
+- **Pipeline** — deep AI filtering of scraped companies
+- **RAG** — cover letter and contact form generation
+- **Gmail** — parsing ambiguous application emails
 
 ---
 
 ## Step 1 — Install Ollama
 
-### Download
-
-Go to **[ollama.com](https://ollama.com)** and click "Download".
-
-- **Windows** → download the `.exe` and install it normally.
-- **Mac** → download the `.dmg`.
-- **Linux** → paste this command into your terminal:
-  ```bash
-  curl -fsSL [https://ollama.com/install.sh](https://ollama.com/install.sh) | sh
-
+Download from **[ollama.com](https://ollama.com)**:
+- **Windows** → `.exe` installer
+- **Mac** → `.dmg`
+- **Linux** → `curl -fsSL https://ollama.com/install.sh | sh`
 
 ---
 
-## Step 2 — Download the Mistral Model
+## Step 2 — Download Required Models
 
-Open a terminal (PowerShell on Windows, Terminal on Mac/Linux) and type:
 ```bash
+# Generation model (used by pipeline + gmail + rag)
 ollama pull mistral
+
+# Embedding model (used by RAG for vector search)
+ollama pull nomic-embed-text
 ```
 
-⏳ It is about 4GB to download, so it might take a few minutes depending on your connection.
+`mistral` is ~4 GB. `nomic-embed-text` is ~274 MB.
 
-You will see something like this:
-```
-pulling manifest
-pulling ff82381e2bea... 100% ▕████████████▏ 4.1 GB
-success
-```
+You can use a different generation model by setting `OLLAMA_MODEL` in your `.env` files. Alternatives that work well:
+- `mistral` (default, 4B — fast on 8 GB RAM)
+- `llama3` (8B — better quality, needs 16 GB RAM)
+- `qwen2.5:7b` (good balance)
 
 ---
 
-## Step 3 - Run Ollama in the Background
+## Step 3 — Keep Ollama Running
 
-Ollama must be **running at all times while you are using the script**.
+Ollama must be **running while Docker Compose is up**.
 
 ```bash
 ollama serve
 ```
 
-> 💡 On Windows, after installation, Ollama often launches **automatically** in the system tray (bottom-right icon). If so, you don't need to run `ollama serve` manually.
-
-To verify it is running, open a browser and go to:
+On Windows, after installation, Ollama typically auto-starts in the system tray. Verify it is running:
 ```
 http://localhost:11434
 ```
-If you see `Ollama is running` → you're all set!
+You should see: `Ollama is running`
 
 ---
 
-## Step 4 — Install Python Dependencies
+## Step 4 — Configure in Docker Compose
 
-In your script folder, open a terminal and run:
-```bash
-pip install requests beautifulsoup4 tqdm ollama
+The root `.env` sets the Ollama connection for all services:
+
+```env
+OLLAMA_HOST=http://host.docker.internal:11434
+OLLAMA_MODEL=mistral
+EMBED_MODEL=nomic-embed-text
 ```
+
+`host.docker.internal` resolves to your host machine from inside Docker containers.
+
+On Linux, `host.docker.internal` may not exist by default. Add this to `docker-compose.yml` for affected services:
+```yaml
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+---
+
+## Model Selection Guide
+
+| Model | RAM needed | Speed | Quality | Use case |
+|---|---|---|---|---|
+| `mistral` | 8 GB | Fast | Good | Default — recommended for most setups |
+| `llama3` | 16 GB | Medium | Better | Better letter quality |
+| `qwen2.5:7b` | 8 GB | Fast | Good | Alternative to mistral |
+| `mistral-nemo` | 16 GB | Medium | Best | Best quality letters |
+
+To switch model: change `OLLAMA_MODEL` in each service `.env` and restart.
+
+---
+
+## RAG + Ollama Flow
+
+The RAG service uses Ollama in two distinct steps:
+
+```
+1. Embeddings (nomic-embed-text)
+   CV chunks + letters + company data → vector representations → ChromaDB
+
+2. Generation (mistral or other)
+   Retrieved context + company data + user profile
+   → 2-pass generation:
+     Pass 1: company analysis  (temperature 0.3)
+     Pass 2: cover letter      (temperature 0.7)
+```
+
+The 2-pass approach produces more coherent, targeted letters.
+
+---
+
+## Troubleshooting
+
+**RAG health shows `embed_model_ready: false`:**
+Run `ollama pull nomic-embed-text` and ensure Ollama is running.
+
+**Letter generation times out:**
+Ollama is slow on first call (model loading). Subsequent calls are faster. Increase `proxy_read_timeout` in nginx if needed.
+
+**`connection refused` on `host.docker.internal`:**
+- Windows/Mac: works by default in Docker Desktop
+- Linux: add `extra_hosts: - "host.docker.internal:host-gateway"` to the service in `docker-compose.yml`
+
+---
+
 [← Back to SETUP](SETUP.md)
 
 [← Back to Main README](../README.md)

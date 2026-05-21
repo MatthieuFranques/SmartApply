@@ -37,7 +37,7 @@ type SourceFilter = 'all' | 'pipeline' | 'indeed';
 })
 export class OffersComponent implements OnInit {
 
-  private readonly api = 'http://localhost:8000';
+  private readonly api = 'http://localhost';
 
   // ── Search params ────────────────────────────────────────────
   keywords = '';
