@@ -144,7 +144,7 @@
     <div class="groups-list">
       <div *ngFor="let group of storedGroups" class="group-item">
 
-        <div class="group-header" (click)="toggleGroup(group)" [class.group-expanded]="isExpanded(group)">
+        <div class="group-header" (click)="toggleGroup(group)" (keydown.enter)="toggleGroup(group)" (keydown.space)="toggleGroup(group)" [class.group-expanded]="isExpanded(group)" tabindex="0" role="button">
           <div class="group-meta">
             <span class="group-keyword">{{ group.keywords || '(toutes)' }}</span>
             <span class="group-sep" *ngIf="group.location">·</span>

@@ -1,4 +1,4 @@
-<div class="modal-backdrop" [class.open]="visible" (click)="onBackdrop($event)">
+<div class="modal-backdrop" [class.open]="visible" (click)="onBackdrop($event)" (keydown.escape)="onBackdrop($event)" role="dialog" aria-modal="true">
   <div class="modal">
 
     <!-- ── Header ── -->

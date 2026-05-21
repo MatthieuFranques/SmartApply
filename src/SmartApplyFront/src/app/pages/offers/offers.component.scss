@@ -112,10 +112,9 @@
 .group-offers {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
   background: var(--bg);
   padding: 8px;
-  gap: 6px;
 }
 
 // ── Search bar ────────────────────────────────────────────────
