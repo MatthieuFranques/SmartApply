@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.services.auth.dependency import get_current_user
-from app.models.user import User
+from app.services.auth.dependency import get_current_user, AuthUser
 from app.services.jobs.from_pipeline import get_offers_from_pipeline
 from app.services.jobs.indeed_rss import search_indeed
 from app.services.jobs.adzuna import search_adzuna
@@ -20,7 +19,7 @@ def get_offers(
     location: str = Query(default=""),
     days:     int = Query(default=30, ge=1, le=90),
     limit:    int = Query(default=100, ge=1, le=300),
-    current_user: User = Depends(get_current_user),
+    current_user: AuthUser = Depends(get_current_user),
 ):
     results: list[dict] = []
 
@@ -59,10 +58,10 @@ def get_offers(
 
 
 @router.get("/stored/grouped")
-def get_stored_grouped(current_user: User = Depends(get_current_user)):
+def get_stored_grouped(current_user: AuthUser = Depends(get_current_user)):
     return find_offers_grouped(current_user.google_id)
 
 
 @router.get("/stored/count")
-def get_stored_count(current_user: User = Depends(get_current_user)):
+def get_stored_count(current_user: AuthUser = Depends(get_current_user)):
     return {"count": count_offers(current_user.google_id)}

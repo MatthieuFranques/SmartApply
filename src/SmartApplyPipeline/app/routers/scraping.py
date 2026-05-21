@@ -4,8 +4,7 @@ from fastapi.responses import StreamingResponse
 from app.services.scraping.scraping_main import stream_scraping
 from app.services.scraping.scraping_config import DEFAULT_SECTORS
 from app.repositories.job_repository import JobRepository
-from app.services.auth.dependency import get_current_user
-from app.models.user import User
+from app.services.auth.dependency import get_current_user, AuthUser
 from app.utils.sse import sse_event, SSE_HEADERS
 
 router = APIRouter(prefix="/scraping", tags=["Scraping"])
@@ -17,7 +16,7 @@ def scrape_stream(
     sectors:       str = Query(default=""),
     max_results:   int = Query(default=100, ge=10, le=500),
     keyword_match: str = Query(default="any", pattern="^(any|all)$"),
-    current_user: User = Depends(get_current_user),
+    current_user: AuthUser = Depends(get_current_user),
 ):
     cities_list  = [c.strip() for c in cities.split(",") if c.strip()]
     sectors_list = [s.strip() for s in sectors.split(",") if s.strip()] or DEFAULT_SECTORS
