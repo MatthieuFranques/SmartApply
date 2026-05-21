@@ -117,6 +117,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.companies       = this.companies.filter(c => c.nom !== nom);
     this.selectedCompany = null;
   }
+  onPipelineDone(): void { this.loadResults(); }
 
   onPipelineDone(): void { this.loadResults(); }
 
