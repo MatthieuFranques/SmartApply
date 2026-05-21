@@ -119,8 +119,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
   onPipelineDone(): void { this.loadResults(); }
 
-  onPipelineDone(): void { this.loadResults(); }
-
   // ── Load ──────────────────────────────────────────────────
 
   loadResults(): void {
