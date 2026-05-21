@@ -55,45 +55,6 @@ docs(rag): document inbox ingestion flow
 
 ---
 
-## Project Structure
-
-```
-SmartApply/
-├── src/
-│   ├── SmartApplyAuth/       # FastAPI — port 8000
-│   │   └── app/
-│   │       ├── routers/      # auth.py, profile.py
-│   │       ├── services/     # auth/, gmail/
-│   │       ├── repositories/ # user_repository, profile_repository
-│   │       ├── models/       # user.py, gmail.py
-│   │       └── db/           # mongo.py, indexes.py
-│   ├── SmartApplyPipeline/   # FastAPI — port 8002
-│   │   └── app/
-│   │       ├── routers/      # scraping, filter, enrich, pipeline, letter
-│   │       ├── services/     # scraping/, filters/, enrich/, generate_letter/
-│   │       ├── repositories/ # job_repository, user_repository, profile_repository
-│   │       └── models/
-│   ├── SmartApplyJobs/       # FastAPI — port 8003
-│   │   └── app/
-│   │       ├── routers/      # jobs.py
-│   │       └── services/jobs/ # adzuna, indeed_rss, from_pipeline, search_cache
-│   ├── SmartApplyGmail/      # FastAPI — port 8004
-│   │   └── app/
-│   │       ├── routers/      # gmail.py, job_applications.py
-│   │       └── services/     # gmail/, job_applications/, generate_letter/
-│   ├── SmartApplyRag/        # FastAPI — port 8001 (internal)
-│   │   └── app/
-│   │       ├── routers/      # generate, index, retrieve, ingest
-│   │       └── services/     # embedder, indexer, retriever, generator, ingestor
-│   └── SmartApplyFront/      # Angular 18
-├── nginx/
-│   └── nginx.conf            # Gateway routing config
-├── docker-compose.yml
-└── docs/
-```
-
----
-
 ## Development Standards
 
 ### Naming Conventions
@@ -143,4 +104,3 @@ Events must end with `{"type": "done"}`.
 
 ---
 
-[← Back to Main README](../README.md)

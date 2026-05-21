@@ -60,4 +60,3 @@ This project has not undergone a professional security audit. Use at your own ri
 
 *Last updated: 2026-05-20*
 
-[← Back to Main README](../README.md)

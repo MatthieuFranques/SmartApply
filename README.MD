@@ -81,7 +81,7 @@ See [SETUP.md](docs/SETUP.md) for the full guide.
 |---|---|
 | [SETUP.md](docs/SETUP.md) | Full installation guide — Docker, Ollama, env vars |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, service map, data flows |
-| [microservices.md](docs/microservices.md) | Complete API reference for all microservices |
+| [MICROSERVICES.md](docs/MICROSERVICES.md) | Complete API reference for all microservices |
 | [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Git Flow, commit conventions, project structure |
 | [GUIDE_OLLAMA.md](docs/GUIDE_OLLAMA.md) | Ollama setup, model selection, RAG flow |
 | [SECURITY.md](docs/SECURITY.md) | Auth, secret management, deployment notes |

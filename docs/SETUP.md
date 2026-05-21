@@ -168,4 +168,3 @@ In Google Cloud Console, add `http://localhost/auth/callback` to the list of aut
 
 ---
 
-[← Back to Main README](../README.md)

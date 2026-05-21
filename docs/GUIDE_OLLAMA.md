@@ -120,5 +120,3 @@ Ollama is slow on first call (model loading). Subsequent calls are faster. Incre
 ---
 
 [← Back to SETUP](SETUP.md)
-
-[← Back to Main README](../README.md)
