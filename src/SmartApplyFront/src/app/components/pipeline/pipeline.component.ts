@@ -103,7 +103,7 @@ export class PipelineComponent implements OnInit, OnDestroy {
     if (!this.running) this.closed.emit();
   }
 
-  onBackdrop(event: MouseEvent): void {
+  onBackdrop(event: Event): void {
     if ((event.target as HTMLElement).classList.contains('modal-backdrop')) {
       this.close();
     }
