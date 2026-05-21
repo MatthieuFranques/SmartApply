@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.indexes import create_indexes
-from app.routers import scraping, filter, enrich, pipeline, letter, jobs
+from app.routers import scraping, filter, enrich, pipeline, jobs
 from app.db.mongo import get_client
 
 
@@ -26,7 +26,6 @@ app.include_router(scraping.router)
 app.include_router(filter.router)
 app.include_router(enrich.router)
 app.include_router(pipeline.router)
-app.include_router(letter.router)
 app.include_router(jobs.router)
 
 

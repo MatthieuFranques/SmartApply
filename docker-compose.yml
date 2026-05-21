@@ -48,11 +48,14 @@ services:
     env_file: ./src/SmartApplyPipeline/.env
     environment:
       RAG_URL: http://rag:8001
+      GMAIL_URL: http://gmail:8004
     depends_on:
       mongodb:
         condition: service_healthy
       rag:
         condition: service_started
+      gmail:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
       interval: 15s

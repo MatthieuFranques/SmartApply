@@ -24,11 +24,6 @@
 
   <!-- Action Buttons -->
   <div class="action-bar">
-    <button class="btn-action btn-letter"
-            (click)="generateLetter()"
-            [disabled]="letterLoading">
-      {{ letterLoading ? 'Génération...' : 'Lettre de motivation' }}
-    </button>
     <button class="btn-action btn-draft"
             (click)="createDraft()"
             [disabled]="draftLoading">
@@ -59,30 +54,6 @@
     </div>
   </div>
 
-  <!-- Letter Editor -->
-  <div class="letter-editor" *ngIf="showLetterEditor">
-    <div class="editor-header">
-      <div class="editor-title">
-        Lettre de motivation — {{ company.nom }}
-      </div>
-      <div class="editor-actions">
-        <button class="editor-btn copy" (click)="copyLetter()">
-          {{ copied ? '✅ Copié' : '📋 Copier' }}
-        </button>
-        <button class="editor-btn close-editor" (click)="showLetterEditor = false">✕</button>
-      </div>
-    </div>
-    <div class="editor-error" *ngIf="letterError">⚠️ {{ letterError }}</div>
-    <textarea
-      class="editor-textarea"
-      [(ngModel)]="letterContent"
-      placeholder="La lettre de motivation apparaîtra ici..."
-      spellcheck="true">
-    </textarea>
-    <div class="editor-footer">
-      <span class="char-count">{{ letterContent.length }} caractères</span>
-    </div>
-  </div>
 
   <!-- Badges -->
   <div class="badge-row">

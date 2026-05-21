@@ -61,6 +61,16 @@ def auth_status(current_user: User = Depends(get_current_user)):
     }
 
 
+@router.get("/me")
+def auth_me(current_user: User = Depends(get_current_user)):
+    return {
+        "google_id": current_user.google_id,
+        "email":     current_user.email,
+        "name":      current_user.name,
+        "picture":   current_user.picture,
+    }
+
+
 @router.post("/logout")
 def auth_logout():
     response = JSONResponse({"message": "Logged out"})

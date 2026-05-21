@@ -1,30 +1,35 @@
+import os
 from typing import Optional
-from fastapi import Depends, HTTPException, Cookie
-
-from app.services.auth.jwt_handler import decode_jwt
-from app.repositories.user_repository import UserRepository
-from app.models.user import User
+from fastapi import Cookie, HTTPException
+from pydantic import BaseModel
+import httpx
 
 
-async def get_current_user(session: Optional[str] = Cookie(None)) -> User:
+class AuthUser(BaseModel):
+    google_id: str
+    email: str
+    name: str
+    picture: Optional[str] = None
+
+
+async def get_current_user(session: Optional[str] = Cookie(None)) -> AuthUser:
     if not session:
-        raise HTTPException(
-            status_code=401,
-            detail="Non authentifié → GET /gmail/auth"
-        )
+        raise HTTPException(status_code=401, detail="Non authentifié → GET /gmail/auth")
 
-    google_id = decode_jwt(session)
-    if not google_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Session invalide ou expirée → GET /gmail/auth"
-        )
+    gmail_url = os.getenv("GMAIL_URL", "http://gmail:8004")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{gmail_url}/auth/me",
+                cookies={"session": session},
+                timeout=5.0,
+            )
+    except httpx.RequestError:
+        raise HTTPException(status_code=503, detail="Auth service unavailable")
 
-    user = UserRepository().find_by_google_id(google_id)
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Utilisateur introuvable"
-        )
+    if response.status_code == 401:
+        raise HTTPException(status_code=401, detail="Session invalide ou expirée → GET /gmail/auth")
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="Auth service error")
 
-    return user
+    return AuthUser(**response.json())
