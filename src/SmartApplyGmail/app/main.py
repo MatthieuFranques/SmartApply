@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.indexes import create_indexes
-from app.routers import gmail, job_applications
+from app.routers import auth, gmail, job_applications
 from app.db.mongo import get_client
 
 
@@ -22,6 +22,7 @@ app.add_middleware(
     allow_credentials=True,
 )
 
+app.include_router(auth.router)
 app.include_router(gmail.router)
 app.include_router(job_applications.router)
 

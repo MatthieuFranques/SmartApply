@@ -12,3 +12,4 @@ ollama
 httpx
 requests
 python-jose[cryptography]==3.3.0
+python-multipart
