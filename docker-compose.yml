@@ -1,4 +1,7 @@
 services:
+
+  # ── Infrastructure ─────────────────────────────────────────
+
   mongodb:
     image: mongo:7
     container_name: smartapply-db
@@ -15,37 +18,104 @@ services:
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping')\" --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin"]
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
-  # Backend : 
-
-  backend:
-    build: ./src/SmartApplyBack
-    container_name: smartapply-api
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: smartapply-gateway
     ports:
-      - "8000:8000"
-    env_file: ./src/SmartApplyBack/.env
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      pipeline:
+        condition: service_healthy
+      gmail:
+        condition: service_healthy
+      rag:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Microservices ──────────────────────────────────────────
+
+  pipeline:
+    build: ./src/SmartApplyPipeline
+    container_name: smartapply-pipeline
+    env_file: ./src/SmartApplyPipeline/.env
+    environment:
+      RAG_URL: http://rag:8001
+      GMAIL_URL: http://gmail:8004
     depends_on:
       mongodb:
         condition: service_healthy
+      rag:
+        condition: service_started
+      gmail:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 512M
 
+  gmail:
+    build: ./src/SmartApplyGmail
+    container_name: smartapply-gmail
+    env_file: ./src/SmartApplyGmail/.env
+    environment:
+      RAG_URL: http://rag:8001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  rag:
+    build: ./src/SmartApplyRag
+    container_name: smartapply-rag
+    ports:
+      - "8001:8001"
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
+      CHROMA_PATH: /app/data/chroma
+      INBOX_PATH: /app/data/inbox
+    volumes:
+      - rag_data:/app/data/chroma
+      - rag_inbox:/app/data/inbox
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ── Frontend (docker optionnel — utilise ng serve en dev) ──
   # frontend:
   #   build: ./src/SmartApplyFront
   #   container_name: smartapply-ui
   #   ports:
   #     - "4200:4200"
   #   depends_on:
-  #     - backend
+  #     - gateway
   #   volumes:
-  #     - ./src/SmartApplyFront:/app #Hot-Reload
+  #     - ./src/SmartApplyFront:/app
   #     - /app/node_modules
   #   deploy:
   #     resources:
@@ -54,3 +124,5 @@ services:
 
 volumes:
   mongo_data:
+  rag_data:
+  rag_inbox:

@@ -1,86 +1,107 @@
 # System Architecture
 
-This document describes the high-level architecture of **SmartApply**.
+## Components
 
-## Component Overview
-- **Frontend**: Angular 18 Single Page Application (SPA).
-- **Backend**: FastAPI (Python 3.11) asynchronous REST API.
-<!-- - **Database**: MongoDB (NoSQL) for flexible job offer schemas. -->
-- **AI Engine**: Ollama (Running locally on Host OS).
+| Component | Technology | Role |
+|---|---|---|
+| Frontend | Angular 18 | Pipeline dashboard + application tracker |
+| Gateway | nginx 1.27 | Reverse proxy, port 80 |
+| Gmail | FastAPI (Python 3.11) — port 8004 | Auth + Gmail + application sync |
+| Pipeline | FastAPI (Python 3.11) — port 8002 | Scraping + filter + enrich + jobs |
+| RAG | FastAPI (Python 3.11) — port 8001 | Vector store + Ollama letter generation |
+| MongoDB | mongo:7 — port 27017 | Shared database |
+| Ollama | Native on host | Local LLM inference (Mistral / Llama3) |
 
+## Architecture Diagram
 
 ```mermaid
 graph TD
-    %% Define Nodes and Styles
-    subgraph Host_Machine ["Host Machine (Your PC)"]
-        style Host_Machine fill:#f9f9f9,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    User((Browser))
 
-        %% Local AI Engine (Native)
-        Ollama[("🦙 Ollama (Mistral/Llama3)
-        Running Natively")]
-        style Ollama fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    subgraph Docker["Docker Compose"]
+        Gateway["nginx:80"]
+
+        subgraph Services["Services"]
+            Gmail["Gmail :8004\n/auth /gmail /candidatures"]
+            Pipeline["Pipeline :8002\n/scraping /filter /enrich /jobs"]
+            RAG["RAG :8001\n(internal)"]
+        end
+
+        MongoDB[("MongoDB :27017")]
+        ChromaDB[("ChromaDB volume")]
     end
 
-    subgraph Docker_Compose_Environment ["Docker Compose Network"]
-        style Docker_Compose_Environment fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    Ollama[("Ollama\nhost machine")]
 
-        %% Frontend Container
-        Nginx[("🌐 smartapply-ui
-        (Angular SPA)")]
-        style Nginx fill:#fff9c4,stroke:#fbc02d,stroke-width:2px
+    User -->|HTTP :80| Gateway
+    Gateway --> Gmail
+    Gateway --> Pipeline
 
-        %% Backend Container
-        FastAPI[("⚡ smartapply-api
-        (FastAPI Backend)")]
-        style FastAPI fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    Gmail --> MongoDB
+    Gmail --> RAG
+    Gmail -.->|"/enrich/company\n(company data)"| Pipeline
 
-        %% Database Container
-        MongoDB[("🍃 smartapply-db
-        (MongoDB)")]
-        style MongoDB fill:#fbe9e7,stroke:#d84315,stroke-width:2px
-    end
+    Pipeline --> MongoDB
+    Pipeline --> RAG
+    Pipeline -.->|"/auth/me\n(session validation)"| Gmail
 
-    %% External APIs
-    GoogleAPI[("🔍 Google Search API
-    (Job Discovery)")]
-    style GoogleAPI fill:#fce4ec,stroke:#c2185b,stroke-width:1px
-    
-    HunterAPI[("📧 Hunter.io API
-    (Email Verification)")]
-    style HunterAPI fill:#fce4ec,stroke:#c2185b,stroke-width:1px
-
-    %% Define Connections & Data Flow
-    User((User)) -.->|Accesses| Nginx
-    Nginx ==>|REST API Calls| FastAPI
-    FastAPI ==>|Reads/Writes| MongoDB
-
-    %% Component Detail Connections
-    Nginx -.- DashboardViews
-    subgraph DashboardViews ["Dashboard Views"]
-        style DashboardViews fill:none,stroke:none
-        DV1[Dashboard 1: Scraped & Filtered Job Info]
-        DV2[Dashboard 2: Applied Jobs & Drafted Emails]
-    end
-
-    %% Backend Interactions
-    FastAPI ===>|Job Discovery (Phase 2)| GoogleAPI
-    FastAPI ===>|Email Data (Hunter)| HunterAPI
-    
-    %% AI Connection (Docker to Host)
-    FastAPI <-.->|AI Inference (host.docker.internal)| Ollama
-
-    %% Connection styling
-    linkStyle 0,1,2 stroke:#333,stroke-width:1px,stroke-dasharray: 3 3;
-    linkStyle 3,4,5,6,7 stroke:#01579b,stroke-width:2px;
+    RAG --> ChromaDB
+    RAG -->|"host.docker.internal:11434"| Ollama
 ```
 
-## Data Flow
-1. User uploads a CV or Job Description via the **Angular UI**.
-2. **FastAPI** processes the request and calls **Ollama** via the internal Docker bridge (`host.docker.internal`).
-3. The AI-generated content is stored in **MongoDB** and sent back to the user.
+## Request Flow
 
-## Why this Stack?
-- **FastAPI**: For high performance and automatic Swagger documentation.
-- **Docker**: To ensure environment consistency between development and deployment.
+```
+Browser → nginx:80 → [gmail|pipeline]:port → MongoDB
+                            ↓
+                    pipeline/gmail → rag:8001 → ChromaDB + Ollama
+
+Inter-service (internal HTTP):
+  pipeline → gmail:8004/auth/me           (session validation)
+  gmail    → pipeline:8002/enrich/company (company data for drafts)
+```
+
+## nginx Route Table
+
+| URL prefix | Upstream |
+|---|---|
+| `/auth`, `/profile`, `/gmail`, `/candidatures` | `gmail:8004` |
+| `/scraping`, `/filter`, `/enrich`, `/pipeline`, `/letter`, `/jobs` | `pipeline:8002` |
+
+> RAG (`rag:8001`) not exposed through nginx — internal only.
+
+## Pipeline Data Flow
+
+```
+scraping → filtered → deep → enriched
+```
+
+Keyed on `(user_id, domaine)` in MongoDB `jobs` collection. All pipeline endpoints use SSE streaming (`text/event-stream`), terminating with `{"type": "done"}`.
+
+## Auth Flow
+
+```
+GET /auth/login
+  → redirect to Google OAuth2
+
+GET /auth/callback?code=...
+  → exchange code for tokens
+  → upsert user in MongoDB
+  → set HttpOnly session cookie (7 days, JWT signed with JWT_SECRET_KEY)
+  → redirect to frontend
+
+Pipeline auth: forwards session cookie → gmail:8004/auth/me → returns AuthUser
+```
+
+## Why 3 Services?
+
+| Service | Memory | Responsibility |
+|---|---|---|
+| gmail | 256M | Auth + Gmail API (I/O bound) |
+| pipeline | 512M | Scraping + AI filtering (CPU/memory heavy) |
+| rag | 512M | ChromaDB + Ollama generation |
+| mongodb | 512M | Database |
+
+Total: ~1.8 GB max. Each service scales independently.
 
 [← Back to Main README](../README.md)

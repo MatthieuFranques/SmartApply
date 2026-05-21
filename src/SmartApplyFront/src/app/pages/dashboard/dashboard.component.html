@@ -27,7 +27,9 @@
                 (click)="activeTab = 'companies'">ENTREPRISES</button>
         <button class="nav-btn" [class.active]="activeTab === 'applications'"
                 (click)="activeTab = 'applications'">CANDIDATURES</button>
-        <button class="nav-btn" disabled>OFFRES</button>
+        <button class="nav-btn" [class.active]="activeTab === 'offers'"
+                (click)="activeTab = 'offers'">OFFRES</button>
+        <button class="nav-btn nav-pipeline" (click)="showPipeline = true">▶ PIPELINE</button>
         <button class="helper-btn" title="Besoin d'aide ?"><span class="icon">?</span></button>
         <span class="user-email">{{ currentUser?.email }}</span>
         <button class="btn-logout" (click)="logout()">DÉCO</button>
@@ -36,7 +38,6 @@
 
     <!-- Onglet Entreprises -->
     <ng-container *ngIf="activeTab === 'companies'">
-      <app-pipeline (pipelineDone)="onPipelineDone()"></app-pipeline>
 
       <div class="status-bar" *ngIf="loading || statusMessage">
         <div class="dot" *ngIf="loading"></div>
@@ -62,6 +63,11 @@
       <app-applications></app-applications>
     </ng-container>
 
+    <!-- Onglet Offres -->
+    <ng-container *ngIf="activeTab === 'offers'">
+      <app-offers></app-offers>
+    </ng-container>
+
   </ng-container>
 
 </div>
@@ -72,3 +78,10 @@
   (closed)="closeDetail()"
   (deleted)="onDeleted($event)">
 </app-company-detail>
+
+<!-- Pipeline modal -->
+<app-pipeline
+  [visible]="showPipeline"
+  (closed)="showPipeline = false"
+  (pipelineDone)="onPipelineDone()">
+</app-pipeline>

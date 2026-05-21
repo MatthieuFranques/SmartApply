@@ -1,0 +1,13 @@
+data/chroma/
+data/inbox/cvs/*
+data/inbox/letters/*
+!data/inbox/cvs/.gitkeep
+!data/inbox/letters/.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/

@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { Company } from '../../models/company.model';
 import { CompanyDetailComponent } from '../company/company.detail.component';
 import { ApplicationsComponent } from '../applications/applications.component';
+import { OffersComponent } from '../offers/offers.component';
 import { PipelineComponent } from '../../components/pipeline/pipeline.component';
 import { AuthScreenComponent } from '../../components/authScreen/auth-screen.component';
 import { StatsBarComponent, StatItem } from '../../components/statsBar/stats-bar.component';
@@ -19,6 +20,7 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
     CommonModule,
     CompanyDetailComponent,
     ApplicationsComponent,
+    OffersComponent,
     PipelineComponent,
     AuthScreenComponent,
     StatsBarComponent,
@@ -30,7 +32,9 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
 })
 export class DashboardComponent implements OnInit, OnDestroy {
 
-  activeTab       : 'companies' | 'applications' = 'companies';
+  activeTab          : 'companies' | 'applications' | 'offers' = 'companies';
+  showPipeline       : boolean = false;
+
   companies       : Company[]  = [];
   loading         : boolean    = false;
   statusMessage   : string     = '';
@@ -39,8 +43,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   authenticated : boolean = false;
   authChecking  : boolean = true;
-  currentUser: { email: string; name: string } | null = null;  
-  private readonly api = 'http://localhost:8000';
+  currentUser: { email: string; name: string } | null = null;
+  private readonly api = 'http://localhost';
   private readonly sub?: Subscription;
 
   constructor(private readonly http: HttpClient) {}
@@ -53,7 +57,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   checkAuth(): void {
     this.authChecking = true;
     this.http.get<{ authenticated: boolean; email: string; name: string }>(
-      `${this.api}/gmail/status`, { withCredentials: true },
+      `${this.api}/auth/status`, { withCredentials: true },
     ).subscribe({
       next: (res) => {
         this.authenticated = res.authenticated;
@@ -65,10 +69,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  connectGmail(): void { globalThis.location.href = `${this.api}/gmail/auth`; }
+  connectGmail(): void { globalThis.location.href = `${this.api}/auth/login`; }
 
   logout(): void {
-    this.http.post(`${this.api}/gmail/logout`, {}, { withCredentials: true }).subscribe({
+    this.http.post(`${this.api}/auth/logout`, {}, { withCredentials: true }).subscribe({
       next: () => {
         this.authenticated = false;
         this.currentUser   = null;
@@ -77,7 +81,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Computed pour les sous-composants ─────────────────────
+  // ── Computed ──────────────────────────────────────────────
 
   get filteredCompanies(): Company[] {
     if (!this.selectedCity || this.selectedCity === 'all') return this.companies;
@@ -87,14 +91,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get statItems(): StatItem[] {
-  const fc = this.filteredCompanies;
-  return [
-    { value: fc.length,                                        label: 'Entreprises', color: 'var(--accent)'  },
-    { value: fc.filter(c => c.is_recruiting).length,          label: 'Recrutent',   color: 'var(--accent5)'  },
-    // { value: fc.filter(c => c.job_offers?.length > 0).length, label: 'Offres IT',   color: 'var(--accent2)' },
-    { value: fc.filter(c => !!c.contact_form?.url).length,    label: 'Contacts',    color: 'var(--accent2)' },
-  ];
-}
+    const fc = this.filteredCompanies;
+    return [
+      { value: fc.length,                                     label: 'Entreprises', color: 'var(--accent)'  },
+      { value: fc.filter(c => c.is_recruiting).length,        label: 'Recrutent',   color: 'var(--accent5)' },
+      { value: fc.filter(c => !!c.contact_form?.url).length,  label: 'Contacts',    color: 'var(--accent2)' },
+    ];
+  }
 
   get cityItems(): CityCount[] {
     return [...new Set(this.companies.map(c => c.ville).filter(Boolean))]
@@ -109,13 +112,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   filterByCity(city: string): void { this.selectedCity = city; }
   openDetail(company: Company):  void { this.selectedCompany = company; }
   closeDetail():                 void { this.selectedCompany = null; }
-  onDeleted(nom: string):        void {
+
+  onDeleted(nom: string): void {
     this.companies       = this.companies.filter(c => c.nom !== nom);
     this.selectedCompany = null;
   }
   onPipelineDone(): void { this.loadResults(); }
 
-  // ── Chargement ────────────────────────────────────────────
+  onPipelineDone(): void { this.loadResults(); }
+
+  // ── Load ──────────────────────────────────────────────────
 
   loadResults(): void {
     this.loading = true;

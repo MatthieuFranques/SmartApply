@@ -1,0 +1,15 @@
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+python-dotenv
+pymongo
+pydantic
+pydantic-settings
+fastapi
+uvicorn
+ollama
+httpx
+requests
+python-jose[cryptography]==3.3.0
+python-multipart

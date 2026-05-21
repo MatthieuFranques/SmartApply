@@ -1,66 +1,218 @@
-<div class="pipeline-container">
+<div class="modal-backdrop" [class.open]="visible" (click)="onBackdrop($event)">
+  <div class="modal">
 
-  <div class="pipeline-config" *ngIf="!running && !done">
-    <div class="config-field">
-      <label>
-      <input [(ngModel)]="city" placeholder="Toulouse, Brussels..." />
-        VILLE(S)
-      </label>
+    <!-- ── Header ── -->
+    <div class="modal-header">
+      <div class="modal-title">
+        <span class="modal-dot"></span>
+        PIPELINE
+      </div>
+      <button class="btn-close" (click)="close()" [disabled]="running" title="Fermer">×</button>
     </div>
-    <button class="btn-launch" (click)="launch()">
-      ▶ LANCER LE PIPELINE
-    </button>
-  </div>
 
-  <div class="phases" *ngIf="running || done">
-    <div class="phase-track">
-      <div *ngFor="let p of phases"
-           class="phase-item"
-           [class.active]="phaseStatus[p.key] === 'active'"
-           [class.done]="phaseStatus[p.key] === 'done'"
-           [class.pending]="phaseStatus[p.key] === 'pending'">
-        <div class="phase-icon">
-          <span *ngIf="phaseStatus[p.key] !== 'done'">{{ p.icon }}</span>
-          <span *ngIf="phaseStatus[p.key] === 'done'">✓</span>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- CONFIG VIEW                                                 -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="modal-body" *ngIf="view === 'config'">
+
+      <!-- ── Villes ── -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-label">VILLES</span>
+          <span class="section-count">{{ cities.length }}</span>
         </div>
-        <div class="phase-info">
-          <span class="phase-label">{{ p.label }}</span>
-          <span class="phase-stats">
-            <span *ngIf="stats[p.key].found">{{ stats[p.key].found }} trouvés</span>
-            <span *ngIf="stats[p.key].kept"> · {{ stats[p.key].kept }} retenus</span>
-            <span *ngIf="stats[p.key].eliminated"> · {{ stats[p.key].eliminated }} éliminés</span>
-            <span *ngIf="stats[p.key].errors"> · {{ stats[p.key].errors }} erreurs</span>
+        <div class="tag-list" *ngIf="cities.length">
+          <span class="tag" *ngFor="let c of cities">
+            {{ c }}
+            <button class="tag-rm" (click)="removeCity(c)">×</button>
           </span>
         </div>
-        <div class="phase-pulse" *ngIf="phaseStatus[p.key] === 'active'"></div>
+        <div class="input-row">
+          <input
+            class="field"
+            [(ngModel)]="cityInput"
+            (keydown.enter)="addCity()"
+            placeholder="Ajouter une ville..."
+            list="cities-dl"
+          />
+          <datalist id="cities-dl">
+            <option *ngFor="let c of config?.scraping?.supported_cities" [value]="c"></option>
+          </datalist>
+          <button class="btn-add" (click)="addCity()" [disabled]="!cityInput.trim()">+</button>
+        </div>
       </div>
-    </div>
 
-    <div class="pipeline-actions">
-      <button class="btn-stop"   (click)="stop()"   *ngIf="running">■ STOP</button>
-      <button class="btn-launch" (click)="launch()" *ngIf="done">↺ RELANCER</button>
-    </div>
-  </div>
-
-  <div class="feed" *ngIf="events.length > 0">
-    <div class="feed-header">
-      <span>LIVE FEED</span>
-      <div class="dot" *ngIf="running"></div>
-    </div>
-    <div class="feed-list">
-      <div *ngFor="let e of events"
-           class="feed-event"
-           [class.event-found]="e.type === 'company'"
-           [class.event-kept]="e.status === 'kept' || e.status === 'ok'"
-           [class.event-elim]="e.status === 'eliminated'"
-           [class.event-error]="e.status === 'error' || e.type === 'error'"
-           [class.event-done]="e.type === 'pipeline_done'">
-        <span class="event-phase" [style.color]="phaseColor(e.phase || '')">
-          {{ e.phase?.toUpperCase() || '—' }}
-        </span>
-        <span class="event-text">{{ eventLabel(e) }}</span>
+      <!-- ── Secteurs ── -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-label">SECTEURS</span>
+          <span class="section-count">{{ activeSectors.length }}/{{ allSectors.length }}</span>
+          <div class="section-actions">
+            <button class="btn-text" (click)="selectAllSectors()">Tout</button>
+            <button class="btn-text" (click)="clearAllSectors()">Aucun</button>
+          </div>
+        </div>
+        <div class="chip-grid">
+          <button
+            class="chip"
+            *ngFor="let s of allSectors"
+            [class.chip-active]="activeSectors.includes(s)"
+            (click)="toggleSector(s)">
+            {{ s }}
+          </button>
+        </div>
+        <div class="input-row">
+          <input
+            class="field"
+            [(ngModel)]="customSector"
+            (keydown.enter)="addCustomSector()"
+            placeholder="Secteur personnalisé..."
+          />
+          <button class="btn-add" (click)="addCustomSector()" [disabled]="!customSector.trim()">+</button>
+        </div>
       </div>
-    </div>
-  </div>
 
+      <!-- ── Params scraping ── -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-label">SCRAPING</span>
+        </div>
+        <div class="params-grid">
+          <div class="param-field">
+            <div class="param-label">MAX RÉSULTATS <span class="param-val">{{ maxResults }}</span></div>
+            <input type="range" [(ngModel)]="maxResults"
+              [min]="config?.scraping?.max_results?.min ?? 10"
+              [max]="config?.scraping?.max_results?.max ?? 300"
+              [step]="config?.scraping?.max_results?.step ?? 10" />
+            <div class="range-labels">
+              <span>{{ config?.scraping?.max_results?.min ?? 10 }}</span>
+              <span>{{ config?.scraping?.max_results?.max ?? 300 }}</span>
+            </div>
+          </div>
+          <div class="param-field">
+            <div class="param-label">MODE MOTS-CLÉS</div>
+            <div class="toggle-group">
+              <button class="toggle-btn" [class.active]="keywordMatch === 'any'" (click)="keywordMatch = 'any'">ANY</button>
+              <button class="toggle-btn" [class.active]="keywordMatch === 'all'" (click)="keywordMatch = 'all'">ALL</button>
+            </div>
+            <div class="param-hint">
+              <span *ngIf="keywordMatch === 'any'">Au moins un mot-clé</span>
+              <span *ngIf="keywordMatch === 'all'">Tous les mots-clés</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Params filtrage ── -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-label">FILTRAGE</span>
+        </div>
+        <div class="params-grid">
+          <div class="param-field">
+            <div class="param-label">SCORE PRÉ-FILTRE <span class="param-val">{{ minPrescore }}/10</span></div>
+            <input type="range" [(ngModel)]="minPrescore"
+              [min]="config?.filter?.min_prescore?.min ?? 0"
+              [max]="config?.filter?.min_prescore?.max ?? 10" />
+            <div class="range-labels">
+              <span>{{ config?.filter?.min_prescore?.min ?? 0 }}</span>
+              <span>{{ config?.filter?.min_prescore?.max ?? 10 }}</span>
+            </div>
+          </div>
+          <div class="param-field" [class.dim-field]="skipDeep">
+            <div class="param-label">SCORE IA <span class="param-val">{{ minDeepScore }}/10</span></div>
+            <input type="range" [(ngModel)]="minDeepScore"
+              [min]="config?.filter?.min_deep_score?.min ?? 0"
+              [max]="config?.filter?.min_deep_score?.max ?? 10"
+              [disabled]="skipDeep" />
+            <div class="range-labels">
+              <span>{{ config?.filter?.min_deep_score?.min ?? 0 }}</span>
+              <span>{{ config?.filter?.min_deep_score?.max ?? 10 }}</span>
+            </div>
+          </div>
+          <div class="param-field">
+            <div class="param-label">ANALYSE IA</div>
+            <div class="toggle-group">
+              <button class="toggle-btn" [class.active]="!skipDeep" (click)="skipDeep = false">ON</button>
+              <button class="toggle-btn toggle-danger" [class.active]="skipDeep" (click)="skipDeep = true">SKIP</button>
+            </div>
+            <div class="param-hint">
+              <span *ngIf="!skipDeep">Filtrage IA activé</span>
+              <span *ngIf="skipDeep">Filtrage IA ignoré</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Launch ── -->
+      <div class="modal-footer">
+        <button class="btn-launch" (click)="launch()" [disabled]="!canLaunch">
+          ▶ LANCER LE PIPELINE
+        </button>
+        <span class="launch-hint" *ngIf="!canLaunch">— ajoute au moins une ville et un secteur</span>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- RUNNING / DONE VIEW                                         -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="modal-body" *ngIf="view === 'running' || view === 'done'">
+
+      <!-- Phases -->
+      <div class="phases">
+        <div *ngFor="let p of phases"
+             class="phase"
+             [class.phase-active]="phaseStatus[p.key] === 'active'"
+             [class.phase-done]="phaseStatus[p.key] === 'done'"
+             [class.phase-pending]="phaseStatus[p.key] === 'pending'">
+          <div class="phase-icon">
+            <span *ngIf="phaseStatus[p.key] === 'done'">✓</span>
+            <span *ngIf="phaseStatus[p.key] !== 'done'">{{ p.icon }}</span>
+          </div>
+          <div class="phase-body">
+            <div class="phase-name">{{ p.label }}</div>
+            <div class="phase-stats">
+              <span *ngIf="stats[p.key].found">{{ stats[p.key].found }} trouvés</span>
+              <span *ngIf="stats[p.key].kept"> · {{ stats[p.key].kept }} ok</span>
+              <span *ngIf="stats[p.key].eliminated"> · {{ stats[p.key].eliminated }} éliminés</span>
+              <span *ngIf="stats[p.key].errors"> · {{ stats[p.key].errors }} err</span>
+            </div>
+          </div>
+          <div class="phase-pulse" *ngIf="phaseStatus[p.key] === 'active'"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="run-actions">
+        <button class="btn-stop"    (click)="stop()"     *ngIf="running">■ STOP</button>
+        <button class="btn-launch"  (click)="relancer()" *ngIf="done">↺ RELANCER</button>
+        <button class="btn-outline" (click)="close()"    *ngIf="done">✓ FERMER</button>
+      </div>
+
+      <!-- Live feed -->
+      <div class="feed" *ngIf="events.length > 0">
+        <div class="feed-header">
+          <span>LIVE FEED</span>
+          <div class="feed-dot" *ngIf="running"></div>
+        </div>
+        <div class="feed-body">
+          <div *ngFor="let e of events"
+               class="feed-row"
+               [class.row-found]="e.type === 'company'"
+               [class.row-kept]="e.status === 'kept' || e.status === 'ok'"
+               [class.row-elim]="e.status === 'eliminated'"
+               [class.row-error]="e.status === 'error' || e.type === 'error'"
+               [class.row-done]="e.type === 'pipeline_done'">
+            <span class="row-phase" [style.color]="phaseColor(e.phase || '')">
+              {{ e.phase?.toUpperCase() || '—' }}
+            </span>
+            <span class="row-text">{{ eventLabel(e) }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
 </div>
