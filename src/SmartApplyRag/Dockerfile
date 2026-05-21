@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app/ app/
 
 RUN mkdir -p data/chroma data/inbox/cvs data/inbox/letters \
     && chown -R appuser:appuser /app
