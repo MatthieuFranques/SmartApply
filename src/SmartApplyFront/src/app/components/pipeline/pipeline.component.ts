@@ -250,10 +250,10 @@ export class PipelineComponent implements OnInit, OnDestroy {
 
   phaseColor(phase: string): string {
     const colors: Record<string, string> = {
-      scraping: '#0066ff',
-      filter:   '#ffaa00',
-      enrich:   '#00e5a0',
+      scraping: '#1E3A8A',
+      filter:   '#D9A05B',
+      enrich:   '#6B8E6B',
     };
-    return colors[phase] ?? '#4a5068';
+    return colors[phase] ?? '#78716C';
   }
 }

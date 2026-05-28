@@ -1,15 +1,20 @@
 :host {
-  --bg:      #0a0c10;
-  --surface: #111318;
-  --surface2:#181b22;
-  --surface3:#1f2330;
-  --border:  #252b3b;
-  --accent:  #00e5a0;
-  --accent2: #0066ff;
-  --danger:  #ff4455;
-  --text:    #e8eaf0;
-  --muted:   #4a5068;
-  --radius:  6px;
+  --bg:       #F7F6F2;
+  --surface:  rgba(255, 255, 255, 0.92);
+  --surface2: rgba(28, 25, 23, 0.04);
+  --surface3: rgba(28, 25, 23, 0.07);
+  --border:   rgba(28, 25, 23, 0.10);
+  --accent:   #A16207;
+  --accent-ink: #FFFFFF;
+  --accent2:  #1E3A8A;
+  --sage:     #6B8E6B;
+  --rose:     #B87373;
+  --ochre:    #D9A05B;
+  --danger:   #B87373;
+  --text:     #1C1917;
+  --muted:    #78716C;
+  --radius:   12px;
+  --shadow-lg: 0 24px 60px rgba(161, 98, 7, 0.16), 0 8px 20px rgba(28, 25, 23, 0.10);
   font-family: 'Space Mono', monospace;
 }
 
@@ -30,7 +35,7 @@ input:not([type=range]) {
   width: 100%;
   transition: border-color 0.2s;
 
-  &:focus        { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,229,160,0.07); }
+  &:focus        { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(161,98,7,0.08); }
   &::placeholder { color: var(--muted); }
   &:disabled     { opacity: 0.35; cursor: not-allowed; }
 }
@@ -55,7 +60,7 @@ input[type=range] {
     background: var(--accent);
     border: none;
     cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(0,229,160,0.14);
+    box-shadow: 0 0 0 3px rgba(161,98,7,0.18);
     transition: transform 0.15s;
   }
   &::-webkit-slider-thumb:hover { transform: scale(1.2); }
@@ -93,7 +98,7 @@ button {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(5, 6, 10, 0.78);
+  background: rgba(60, 50, 40, 0.32);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -115,14 +120,16 @@ button {
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg, 20px);
   width: 100%;
   max-width: 860px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-lg);
 }
 
 // ── Modal header ──────────────────────────────────────────────
@@ -169,7 +176,7 @@ button {
   &:hover:not(:disabled) {
     background: var(--surface3);
     color: var(--text);
-    border-color: #4a5068 !important;
+    border-color: rgba(28,25,23,0.22) !important;
   }
 }
 
@@ -227,9 +234,9 @@ button {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(0,102,255,0.09);
-  border: 1px solid rgba(0,102,255,0.22);
-  color: #93b4ef;
+  background: rgba(30,58,138,0.10);
+  border: 1px solid rgba(30,58,138,0.25);
+  color: #2d4a8a;
   border-radius: 4px;
   padding: 3px 8px;
   font-size: 11px;
@@ -261,8 +268,8 @@ button {
   flex-shrink: 0;
 
   &:hover:not(:disabled) {
-    background: rgba(0,229,160,0.07);
-    border-color: rgba(0,229,160,0.28) !important;
+    background: rgba(161,98,7,0.08);
+    border-color: rgba(107,142,107,0.45) !important;
   }
 }
 
@@ -292,11 +299,11 @@ button {
   font-size: 10px;
   padding: 4px 9px;
 
-  &:hover:not(:disabled) { border-color: #4a5068 !important; color: var(--text); }
+  &:hover:not(:disabled) { border-color: rgba(28,25,23,0.22) !important; color: var(--text); }
 
   &.chip-active {
-    background: rgba(0,229,160,0.06);
-    border-color: rgba(0,229,160,0.32) !important;
+    background: rgba(161,98,7,0.07);
+    border-color: rgba(161,98,7,0.4) !important;
     color: var(--accent);
   }
 }
@@ -353,17 +360,17 @@ button {
   letter-spacing: 1px;
   text-align: center;
 
-  &:hover:not(:disabled) { border-color: #4a5068 !important; color: var(--text); }
+  &:hover:not(:disabled) { border-color: rgba(28,25,23,0.22) !important; color: var(--text); }
 
   &.active {
-    background: rgba(0,229,160,0.07);
-    border-color: rgba(0,229,160,0.32) !important;
+    background: rgba(161,98,7,0.08);
+    border-color: rgba(161,98,7,0.4) !important;
     color: var(--accent);
   }
 
   &.toggle-danger.active {
-    background: rgba(255,68,85,0.07);
-    border-color: rgba(255,68,85,0.32) !important;
+    background: rgba(184,115,115,0.10);
+    border-color: rgba(184,115,115,0.4) !important;
     color: var(--danger);
   }
 }
@@ -385,10 +392,10 @@ button {
   letter-spacing: 1.5px;
   padding: 10px 24px;
   background: var(--accent);
-  color: #000;
+  color: var(--accent-ink);
   border-radius: var(--radius);
 
-  &:hover:not(:disabled) { background: #00cc8f; }
+  &:hover:not(:disabled) { background: #854d0e; }
   &:disabled { opacity: 0.35; }
 }
 
@@ -400,7 +407,7 @@ button {
   border: 1px solid var(--danger) !important;
   color: var(--danger);
   border-radius: var(--radius);
-  &:hover { background: rgba(255,68,85,0.07); }
+  &:hover { background: rgba(184,115,115,0.10); }
 }
 
 .btn-outline {
@@ -411,7 +418,7 @@ button {
   border: 1px solid var(--border) !important;
   color: var(--muted);
   border-radius: var(--radius);
-  &:hover { background: var(--surface2); color: var(--text); border-color: #4a5068 !important; }
+  &:hover { background: var(--surface2); color: var(--text); border-color: rgba(28,25,23,0.22) !important; }
 }
 
 // ── Run actions ───────────────────────────────────────────────
@@ -433,7 +440,7 @@ button {
   transition: border-color 0.2s, opacity 0.2s;
 
   &.phase-active  { border-color: var(--accent); }
-  &.phase-done    { border-color: rgba(0,229,160,0.28); opacity: 0.72; }
+  &.phase-done    { border-color: rgba(107,142,107,0.45); opacity: 0.72; }
   &.phase-pending { opacity: 0.28; }
 }
 
@@ -514,7 +521,7 @@ button {
   align-items: center;
   gap: 12px;
   padding: 6px 14px;
-  border-bottom: 1px solid rgba(37,43,59,0.5);
+  border-bottom: 1px solid var(--border);
   font-size: 11px;
 
   &:last-child   { border-bottom: none; }
@@ -522,7 +529,7 @@ button {
   &.row-kept     { border-left: 2px solid var(--accent); }
   &.row-elim     { border-left: 2px solid var(--muted); opacity: 0.42; }
   &.row-error    { border-left: 2px solid var(--danger); }
-  &.row-done     { border-left: 2px solid #a855f7; background: rgba(168,85,247,0.04); }
+  &.row-done     { border-left: 2px solid var(--accent2); background: rgba(30,58,138,0.05); }
 }
 
 .row-phase {
@@ -534,3 +541,13 @@ button {
 }
 
 .row-text { color: var(--text); flex: 1; }
+
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .modal-body { padding: 16px; gap: 12px; }
+  .phases { flex-direction: column; }
+  .params-grid { flex-direction: column; gap: 14px; }
+  .modal-footer { flex-wrap: wrap; }
+  .run-actions { flex-wrap: wrap; }
+  .toggle-group { flex-wrap: wrap; }
+}

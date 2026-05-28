@@ -32,13 +32,13 @@
   &.active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #000;
+    color: var(--accent-ink);
     font-weight: 700;
   }
 
   &.all.active {
     background: var(--accent2);
     border-color: var(--accent2);
-    color: #fff;
+    color: var(--accent-ink);
   }
 }

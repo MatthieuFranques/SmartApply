@@ -151,9 +151,9 @@ export class OffersComponent implements OnInit {
   closeLetter(offerId: string): void { delete this.letterResult[offerId]; }
 
   scoreColor(score: number | null | undefined): string {
-    if (!score) return '#4a5068';
-    if (score >= 8) return '#00e5a0';
-    if (score >= 5) return '#ffaa00';
-    return '#ff4455';
+    if (!score) return '#78716C';
+    if (score >= 8) return '#6B8E6B';
+    if (score >= 5) return '#D9A05B';
+    return '#B87373';
   }
 }

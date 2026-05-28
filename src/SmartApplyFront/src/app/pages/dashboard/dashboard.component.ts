@@ -94,7 +94,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const fc = this.filteredCompanies;
     return [
       { value: fc.length,                                     label: 'Entreprises', color: 'var(--accent)'  },
-      { value: fc.filter(c => c.is_recruiting).length,        label: 'Recrutent',   color: 'var(--accent5)' },
+      { value: fc.filter(c => c.is_recruiting).length,        label: 'Recrutent',   color: 'var(--sage)' },
       { value: fc.filter(c => !!c.contact_form?.url).length,  label: 'Contacts',    color: 'var(--accent2)' },
     ];
   }

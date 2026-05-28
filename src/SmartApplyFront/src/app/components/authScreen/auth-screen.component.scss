@@ -10,7 +10,7 @@
 .auth-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 40px 48px;
   max-width: 420px;
   width: 100%;
@@ -19,6 +19,7 @@
   align-items: center;
   gap: 16px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .auth-icon  { font-size: 40px; }
