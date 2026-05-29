@@ -1,20 +1,19 @@
 <div class="auth-screen">
   <div class="auth-card">
-    <div class="auth-icon">✉️</div>
     <h2 class="auth-title">Connecte ton Gmail</h2>
     <p class="auth-desc">
       SmartApply lit tes mails labellisés pour afficher<br>
       tes candidatures envoyées, relancées et refusées.
     </p>
     <div class="auth-scopes">
-      <div class="scope-item">🔒 Lecture seule — aucune modification</div>
-      <div class="scope-item">🏷️ Accès aux libellés uniquement</div>
-      <div class="scope-item">💾 Données stockées dans ta base</div>
+      <div class="scope-item">Lecture seule — aucune modification</div>
+      <div class="scope-item">Accès aux libellés uniquement</div>
+      <div class="scope-item">Données stockées dans ta base</div>
     </div>
     <button class="btn-connect" (click)="connect.emit()">
       <span class="google-icon">G</span>
       Se connecter avec Google
     </button>
-    <div class="error-banner" *ngIf="errorMessage">⚠️ {{ errorMessage }}</div>
+    <div class="error-banner" *ngIf="errorMessage">{{ errorMessage }}</div>
   </div>
 </div>

@@ -15,7 +15,7 @@
       <div>
         <h2>{{ company.nom }}</h2>
         <a [href]="'https://' + company.domaine" target="_blank" class="domain-link">
-          🌐 {{ company.domaine }}
+          {{ company.domaine }}
         </a>
       </div>
     </div>
@@ -38,11 +38,11 @@
 
   <!-- Draft status -->
   <div class="draft-banner success" *ngIf="draftUrl">
-    ✅ Brouillon créé —
+    Brouillon créé —
     <a [href]="draftUrl" target="_blank" class="draft-link">Ouvrir dans Gmail</a>
   </div>
   <div class="draft-banner error" *ngIf="draftError">
-    ⚠️ {{ draftError }}
+    {{ draftError }}
   </div>
 
   <!-- Delete confirm banner -->
@@ -58,15 +58,15 @@
   <!-- Badges -->
   <div class="badge-row">
     <span class="badge" [class.green]="company.is_recruiting" [class.grey]="!company.is_recruiting">
-      {{ company.is_recruiting ? '✅ Recrute' : '❌ Ne recrute pas' }}
+      {{ company.is_recruiting ? 'Recrute' : 'Ne recrute pas' }}
     </span>
     <span class="badge info" *ngIf="company.company_size_hint"> {{ company.company_size_hint }}</span>
-    <span class="badge info" *ngIf="company.ville">📍 {{ company.ville }}</span>
+    <span class="badge info" *ngIf="company.ville">{{ company.ville }}</span>
     <span class="badge info" *ngIf="company.secteur"> {{ company.secteur }}</span>
   </div>
 
   <div class="error-banner" *ngIf="company.scrape_status === 'error'">
-    ⚠️ Erreur lors du scraping de cette entreprise
+    Erreur lors du scraping de cette entreprise
   </div>
 
   <div class="section" *ngIf="company.description">
@@ -85,15 +85,12 @@
     <div class="section-title">Contact</div>
     <div class="contact-block">
       <div class="contact-row" *ngIf="company.contact_form?.url">
-        <span class="contact-icon">📬</span>
         <a [href]="company.contact_form.url" target="_blank" class="contact-link">Formulaire de contact</a>
       </div>
       <div class="contact-row" *ngIf="company.email">
-        <span class="contact-icon">✉️</span>
         <a [href]="'mailto:' + company.email" class="contact-link">{{ company.email }}</a>
       </div>
       <div class="contact-row" *ngIf="company.linkedin">
-        <span class="contact-icon">💼</span>
         <a [href]="company.linkedin" target="_blank" class="contact-link">LinkedIn</a>
       </div>
       <div class="no-contact" *ngIf="!hasContact && !company.email && !company.linkedin">
@@ -108,7 +105,7 @@
       <div class="offer-card" *ngFor="let offer of jobOffers">
         <div class="offer-title">{{ offer.title || offer.poste || 'Offre sans titre' }}</div>
         <div class="offer-meta">
-          <span *ngIf="offer.location">📍 {{ offer.location }}</span>
+          <span *ngIf="offer.location">{{ offer.location }}</span>
           <span *ngIf="offer.contract"> {{ offer.contract }}</span>
           <span *ngIf="offer.date"> {{ offer.date }}</span>
         </div>

@@ -33,10 +33,10 @@ def auth_callback(code: str = Query(...)):
         )
 
         jwt_token    = create_jwt(user.google_id)
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200")
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200").rstrip("/")
         is_prod      = os.getenv("ENV", "development") == "production"
 
-        response = RedirectResponse(url=frontend_url)
+        response = RedirectResponse(url=f"{frontend_url}/app")
         response.set_cookie(
             key      = "session",
             value    = jwt_token,
@@ -48,8 +48,8 @@ def auth_callback(code: str = Query(...)):
         return response
 
     except Exception:
-        error_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:4200')}?error=auth_failed"
-        return RedirectResponse(url=error_url)
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:4200").rstrip("/")
+        return RedirectResponse(url=f"{frontend_url}/app?error=auth_failed")
 
 
 @router.get("/status")

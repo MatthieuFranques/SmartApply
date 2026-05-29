@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { Company } from '../../models/company.model';
@@ -18,6 +19,7 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     CompanyDetailComponent,
     ApplicationsComponent,
     OffersComponent,
