@@ -114,10 +114,10 @@ export class ApplicationsComponent implements OnInit {
   // ── Stats identiques au dashboard ───────────────────────────
   get statItems(): StatItem[] {
   return [
-    { value: this.candidatures.length,         label: 'Total',      color: 'var(--accent)'  },
-    { value: this.countByStatut('Entretien'),   label: 'Entretiens', color: 'var(--warning)' },
-    { value: this.countByStatut('En attente'),  label: 'En attente', color: '#f97316'        },
-    { value: this.countByStatut('Refusé'),      label: 'Refusés',    color: 'var(--danger)'  },
+    { value: this.candidatures.length,         label: 'Total',      color: 'var(--accent)' },
+    { value: this.countByStatut('Entretien'),   label: 'Entretiens', color: 'var(--ochre)' },
+    { value: this.countByStatut('En attente'),  label: 'En attente', color: 'var(--muted)' },
+    { value: this.countByStatut('Refusé'),      label: 'Refusés',    color: 'var(--rose)'  },
   ];
 }
 

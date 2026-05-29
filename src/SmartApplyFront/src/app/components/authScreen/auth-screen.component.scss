@@ -10,7 +10,7 @@
 .auth-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 40px 48px;
   max-width: 420px;
   width: 100%;
@@ -19,9 +19,8 @@
   align-items: center;
   gap: 16px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
-
-.auth-icon  { font-size: 40px; }
 
 .auth-title {
   @include mono(18px);
@@ -42,7 +41,23 @@
   padding: 16px;
 }
 
-.scope-item { font-size: 11px; color: var(--muted); text-align: left; }
+.scope-item {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: left;
+  padding-left: 16px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+}
 
 .btn-connect {
   display: flex;

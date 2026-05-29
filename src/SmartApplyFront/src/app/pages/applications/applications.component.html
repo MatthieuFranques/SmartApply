@@ -30,7 +30,7 @@
     <div class="spinner-sm"></div>
     Synchronisation Gmail en cours...
   </div>
-  <div class="error-banner" *ngIf="error">⚠️ {{ error }}</div>
+  <div class="error-banner" *ngIf="error">{{ error }}</div>
 
   <div class="skeleton-list" *ngIf="loading">
     <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5]"></div>
@@ -62,7 +62,7 @@
             </td>
             <td class="td-date">{{ formatDate(c.date) }}</td>
             <td>
-              <a *ngIf="c.gmail_link" [href]="c.gmail_link" target="_blank" class="gmail-link">✉</a>
+              <a *ngIf="c.gmail_link" [href]="c.gmail_link" target="_blank" class="gmail-link">↗</a>
             </td>
           </tr>
         </tbody>
@@ -71,7 +71,6 @@
   </div>
 
   <div class="empty-state" *ngIf="!loading && filtered.length === 0">
-    <div class="empty-icon">📭</div>
     <span>Aucune candidature trouvée.</span>
   </div>
 

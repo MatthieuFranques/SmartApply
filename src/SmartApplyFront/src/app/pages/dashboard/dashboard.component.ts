@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { Company } from '../../models/company.model';
@@ -18,6 +19,7 @@ import { CompanyTableComponent } from '../../components/companyTable/company-tab
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     CompanyDetailComponent,
     ApplicationsComponent,
     OffersComponent,
@@ -94,7 +96,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const fc = this.filteredCompanies;
     return [
       { value: fc.length,                                     label: 'Entreprises', color: 'var(--accent)'  },
-      { value: fc.filter(c => c.is_recruiting).length,        label: 'Recrutent',   color: 'var(--accent5)' },
+      { value: fc.filter(c => c.is_recruiting).length,        label: 'Recrutent',   color: 'var(--sage)' },
       { value: fc.filter(c => !!c.contact_form?.url).length,  label: 'Contacts',    color: 'var(--accent2)' },
     ];
   }

@@ -9,12 +9,13 @@
 .stat {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 110px;
+  box-shadow: var(--shadow);
 }
  
 .stat-value {

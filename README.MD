@@ -8,13 +8,22 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Ollama](https://img.shields.io/badge/LLM-412991?style=for-the-badge&logo=openai&logoColor=white)
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=coverage)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=bugs)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=MatthieuFranques_SmartApply&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=MatthieuFranques_SmartApply)
+
 > **SmartApply** automates the job-search pipeline: scrape companies → filter by relevance → enrich with website data → generate cover letters → track applications from Gmail.
 
 ---
 
 | **Lead Explorer (Scraping)** | **Application Tracker (Gmail)** |
 | :---: | :---: |
-| ![Scraping](./docs/screens/scraping_dashboard.png) | ![Gmail](./docs/screens/gmail_dashboard.png) |
+| ![Home](./docs/screens/home_SA.png) | ![Dashboard](./docs/screens/dashboard_SA.png) |
 
 ---
 

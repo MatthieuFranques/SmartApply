@@ -1,0 +1,71 @@
+<div class="landing">
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="brand">
+      <span class="brand-logo">Smart<span>Apply</span></span>
+    </div>
+    <a class="nav-cta" routerLink="/app">Se connecter</a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-tag">PIPELINE DE RECHERCHE D'EMPLOI</div>
+    <h1 class="hero-title">
+      Ta recherche d'emploi,<br>
+      <span>automatisée de bout en bout.</span>
+    </h1>
+    <p class="hero-sub">
+      SmartApply scrape les entreprises, filtre les plus pertinentes,
+      génère tes lettres de motivation et brouillons d'email, et suit
+      tes candidatures depuis Gmail.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" routerLink="/app">Commencer</a>
+      <a class="btn-ghost" href="#how">Comment ça marche</a>
+    </div>
+  </header>
+
+  <!-- Steps / pipeline -->
+  <section class="section" id="how">
+    <div class="section-head">
+      <span class="section-kicker">LE PIPELINE</span>
+      <h2 class="section-title">Quatre étapes, zéro friction</h2>
+    </div>
+    <div class="steps">
+      <div class="step-card" *ngFor="let s of steps; let i = index">
+        <div class="step-num">{{ i + 1 }}</div>
+        <h3 class="step-title">{{ s.title }}</h3>
+        <p class="step-text">{{ s.text }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-kicker">POURQUOI SMARTAPPLY</span>
+      <h2 class="section-title">Pensé pour réduire le stress</h2>
+    </div>
+    <div class="features">
+      <div class="feature-card" *ngFor="let f of features">
+        <h3 class="feature-title">{{ f.title }}</h3>
+        <p class="feature-text">{{ f.text }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="cta-band">
+    <h2 class="cta-title">Prêt à postuler plus intelligemment ?</h2>
+    <p class="cta-sub">Connecte ton Gmail et lance ton premier pipeline en quelques secondes.</p>
+    <a class="btn-primary btn-lg" routerLink="/app">Accéder à l'application</a>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span class="brand-logo sm">Smart<span>Apply</span></span>
+    <span class="footer-note">Recherche d'emploi automatisée · Lecture seule Gmail</span>
+  </footer>
+
+</div>
