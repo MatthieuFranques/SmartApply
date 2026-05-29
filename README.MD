@@ -14,7 +14,7 @@
 
 | **Lead Explorer (Scraping)** | **Application Tracker (Gmail)** |
 | :---: | :---: |
-| ![Scraping](./docs/screens/scraping_dashboard.png) | ![Gmail](./docs/screens/gmail_dashboard.png) |
+| ![Home](./docs/screens/home_SA.png) | ![Dashboard](./docs/screens/dashboard_SA.png) |
 
 ---
 

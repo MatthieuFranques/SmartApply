@@ -51,24 +51,13 @@
 - [ ] Docker Compose production profile (resource limits, restart policies)
 - [ ] Health check monitoring + alerting (Uptime Robot or similar)
 - [ ] CI/CD pipeline — auto-deploy on merge to `main`
-
-## Phase 6 — Mobile App (Flutter) 📱
-
-> Features not possible or degraded on Angular web.
-
-- [ ] Flutter app (BLoC pattern, mirrors pipeline + tracker)
-- [ ] Push notifications
-  - New job offer matching profile
-  - Application status change detected in Gmail
-  - Follow-up reminder (e.g. "no response after 2 weeks")
-- [ ] Native share sheet — share job offer directly to SmartApply
-- [ ] Background Gmail sync (periodic, without app open)
-- [ ] Biometric authentication (Face ID / fingerprint)
-- [ ] Offline mode — cached pipeline results + application list
-- [ ] Home screen widget — application count + last sync
-
-
+- [ ] Kubernetes (learning / scalable deploy) — alternative to Compose
+  - Local cluster: k3d / minikube / kind
+  - Manifests: Deployment + Service per microservice
+  - Ingress (replaces nginx gateway)
+  - StatefulSet + PVC for MongoDB + ChromaDB
+  - Secrets / ConfigMap for env vars
 
 ---
 
-*Roadmap updated 2026-05-21*
+*Roadmap updated 2026-05-29*
