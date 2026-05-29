@@ -14,3 +14,14 @@ for _mod in ("chromadb", "ollama"):
         __import__(_mod)
     except ImportError:
         sys.modules[_mod] = MagicMock()
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+@pytest.fixture
+def client():
+    """TestClient without lifespan (skips startup auto-ingestion)."""
+    return TestClient(app)
